@@ -1,0 +1,63 @@
+# Local LLM Configuration
+llm:
+  endpoint: "http://localhost:8080/v1"
+  api_key: "secret"
+  model: "qwen"
+  temperature: 0.7
+  max_tokens: 4096
+  context_window: 102400
+
+  # llama-server Auto-Management
+  auto_manage: true  # If true, coder will start/stop llama-server automatically
+  startup_timeout: 60  # Seconds to wait for llama-server to become ready
+
+  # llama-server Configuration (only used if auto_manage is true)
+  server:
+    model_path: "C:\\models\\Qwen3-Yoyo-V3-42B-A3B-Thinking\\Qwen3-Yoyo-V3-42B-A3B-Thinking.gguf"
+    host: "0.0.0.0"
+    port: 8080
+    ctx_size: 102400
+    flash_attn: true
+    jinja: true
+    cache_type_k: "q8_0"
+    cache_type_v: "q8_0"
+    batch_size: 1024
+    ubatch_size: 512
+    n_cpu_moe: 28
+    n_gpu_layers: 99
+    repeat_last_n: 192
+    repeat_penalty: 1.05
+    threads: 16
+
+# Tool Configuration
+tools:
+  enabled:
+    - read
+    - write
+    - edit
+    - glob
+    - grep
+    - bash
+    - todo_write
+    - web_fetch
+    - web_search
+
+# Confirmation Policies
+confirmation:
+  mode: "interactive" # interactive, auto, destructive_only
+  auto_approve_tools:
+    - read
+    - glob
+    - grep
+  always_confirm_tools:
+    - write
+    - edit
+    - bash
+
+# Logging Configuration
+logging:
+  format: "jsonl"
+  directory: "logs"
+  level: "info"
+  log_tool_results: true
+  log_reasoning: true

@@ -1,0 +1,25 @@
+# Binaries
+coder.exe
+coder
+*.exe
+
+# Logs
+logs/
+*.log
+
+# Session data
+TODO.md
+.coder_history
+
+# Go
+go.sum
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
