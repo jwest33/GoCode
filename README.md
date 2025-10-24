@@ -1,22 +1,6 @@
 <div align="center">
 
-<pre style="background: transparent; border: none; padding: 0; margin: 0;">
-  <span style="color: #00d9ff;">╔═══════════════════════════════════════════════════════╗</span>
-  <span style="color: #00d9ff;">║</span>                                                       <span style="color: #00d9ff;">║</span>
-  <span style="color: #00d9ff;">║</span>            <span style="color: #00d9ff; font-weight: bold;">░█▀▀█ █▀▀█ ░█▀▀█ █▀▀█ █▀▀▄ █▀▀</span>             <span style="color: #00d9ff;">║</span>
-  <span style="color: #00d9ff;">║</span>            <span style="color: #ff00ff; font-weight: bold;">░█░▄▄░█░░█░░█░░░░█░░█░█░░█░█▀▀</span>             <span style="color: #00d9ff;">║</span>
-  <span style="color: #00d9ff;">║</span>            <span style="color: #00d9ff; font-weight: bold;">░█▄▄█ ▀▀▀▀ ░█▄▄█ ▀▀▀▀ ▀▀▀  ▀▀▀</span>             <span style="color: #00d9ff;">║</span>
-  <span style="color: #00d9ff;">║</span>                                                       <span style="color: #00d9ff;">║</span>
-  <span style="color: #00d9ff;">║</span>               <span style="color: #ff00ff;">AI-Powered Development Assistant</span>        <span style="color: #00d9ff;">║</span>
-  <span style="color: #00d9ff;">║</span>                                                       <span style="color: #00d9ff;">║</span>
-  <span style="color: #00d9ff;">╚═══════════════════════════════════════════════════════╝</span>
-</pre>
-
-<h3>
-  <span style="color: #00d9ff;">Local AI Coding Agent</span> •
-  <span style="color: #ff00ff;">llama.cpp Integration</span> •
-  <span style="color: #00ff9f;">Production Ready</span>
-</h3>
+![GoCode Banner](docs/banner.jpg)
 
 [![License](https://img.shields.io/badge/license-MIT-ff00ff.svg)](LICENSE)
 [![Go Version](https://img.shields.io/badge/go-1.23+-00d9ff.svg)](https://go.dev)
@@ -26,9 +10,9 @@
 
 ---
 
-## Overview
+## ${\textsf{\color{magenta}Overview}}$
 
-GoCode is an autonomous AI development assistant that runs entirely on your machine. It features automatic llama-server management, intelligent project analysis, hybrid retrieval systems, and a full suite of development tools with configurable human-in-the-loop confirmation.
+${\color{cyan}▸}$ GoCode is an autonomous AI development assistant that runs entirely on your machine. It features automatic llama-server management, intelligent project analysis, hybrid retrieval systems, and a full suite of development tools with configurable human-in-the-loop confirmation.
 
 <table>
 <tr>
@@ -57,9 +41,9 @@ GoCode is an autonomous AI development assistant that runs entirely on your mach
 
 ---
 
-## <span style="color: #ff00ff;">▸</span> Features
+## ${\color{magenta}▸}$ Features
 
-### <span style="color: #00d9ff;">Project Initialization</span>
+### ${\textsf{\color{cyan}Project Initialization}}$
 
 <table>
 <tr><td width="30%"><b>First-run detection</b></td><td>Automatically analyzes projects on first launch</td></tr>
@@ -70,7 +54,7 @@ GoCode is an autonomous AI development assistant that runs entirely on your mach
 <tr><td><b>Background indexing</b></td><td>Builds search indices asynchronously</td></tr>
 </table>
 
-### <span style="color: #00d9ff;">Context & Memory Management</span>
+### ${\textsf{\color{cyan}Context \& Memory Management}}$
 
 <table>
 <tr><td width="30%"><b>Budget-based allocation</b></td><td>Intelligent token distribution across system, user, context, history, and response</td></tr>
@@ -80,7 +64,7 @@ GoCode is an autonomous AI development assistant that runs entirely on your mach
 <tr><td><b>Context window support</b></td><td>Handles up to 1M+ token contexts with proper KV cache quantization</td></tr>
 </table>
 
-### <span style="color: #00d9ff;">Code Navigation</span>
+### ${\textsf{\color{cyan}Code Navigation}}$
 
 <table>
 <tr><td width="30%"><b>LSP integration</b></td><td>Find definitions, references, and symbols using Language Server Protocol</td></tr>
@@ -90,7 +74,7 @@ GoCode is an autonomous AI development assistant that runs entirely on your mach
 <tr><td><b>Configurable weights</b></td><td>Tune retrieval fusion (default: 40% BM25, 50% semantic, 10% trigram)</td></tr>
 </table>
 
-### <span style="color: #00d9ff;">llama.cpp Integration</span>
+### ${\textsf{\color{cyan}llama.cpp Integration}}$
 
 <table>
 <tr><td width="30%"><b>Auto-managed server</b></td><td>Automatically starts/stops llama-server with optimal settings</td></tr>
@@ -101,7 +85,7 @@ GoCode is an autonomous AI development assistant that runs entirely on your mach
 <tr><td><b>Custom parameters</b></td><td>Full control over ctx_size, batch_size, threads, repeat penalty, etc.</td></tr>
 </table>
 
-### <span style="color: #00d9ff;">Tool Suite</span>
+### ${\textsf{\color{cyan}Tool Suite}}$
 
 <details>
 <summary><b>File Operations</b></summary>
@@ -149,7 +133,7 @@ GoCode is an autonomous AI development assistant that runs entirely on your mach
 
 </details>
 
-### <span style="color: #00d9ff;">Observability & Persistence</span>
+### ${\textsf{\color{cyan}Observability \& Persistence}}$
 
 <table>
 <tr><td width="30%"><b>Structured logging</b></td><td>Async JSONL logs with user inputs, LLM requests/responses, tool calls, and token counts</td></tr>
@@ -159,7 +143,7 @@ GoCode is an autonomous AI development assistant that runs entirely on your mach
 <tr><td><b>Performance tracking</b></td><td>Token usage, timing, and operation metadata</td></tr>
 </table>
 
-### <span style="color: #00d9ff;">Developer Experience</span>
+### ${\textsf{\color{cyan}Developer Experience}}$
 
 <table>
 <tr><td width="30%"><b>Synthwave theme</b></td><td>Cyan, pink, purple, green, red, yellow color palette</td></tr>
@@ -171,7 +155,7 @@ GoCode is an autonomous AI development assistant that runs entirely on your mach
 
 ---
 
-## <span style="color: #ff00ff;">▸</span> Quick Start
+## ${\color{magenta}▸}$ Quick Start
 
 ### Prerequisites
 
@@ -270,7 +254,7 @@ Recommendations:
 
 ---
 
-## <span style="color: #ff00ff;">▸</span> Configuration
+## ${\color{magenta}▸}$ Configuration
 
 **Config search order:**
 1. `--config` flag
@@ -479,7 +463,7 @@ evaluation:
 
 ---
 
-## <span style="color: #ff00ff;">▸</span> Usage
+## ${\color{magenta}▸}$ Usage
 
 ### Basic Interaction
 
@@ -535,7 +519,7 @@ Results:
 
 ---
 
-## <span style="color: #ff00ff;">▸</span> Extended Features
+## ${\color{magenta}▸}$ Extended Features
 
 ### Session Checkpointing
 
@@ -645,7 +629,7 @@ telemetry:
 
 ---
 
-## <span style="color: #ff00ff;">▸</span> Architecture
+## ${\color{magenta}▸}$ Architecture
 
 ### Internal Packages
 
@@ -702,7 +686,7 @@ Memory (long-term storage)
 
 ---
 
-## <span style="color: #ff00ff;">▸</span> Development
+## ${\color{magenta}▸}$ Development
 
 ### Building from Source
 
@@ -740,7 +724,7 @@ Contributions welcome! Please:
 
 ---
 
-## <span style="color: #ff00ff;">▸</span> Troubleshooting
+## ${\color{magenta}▸}$ Troubleshooting
 
 <details>
 <summary><b>llama-server fails to start</b></summary>
@@ -847,7 +831,7 @@ Contributions welcome! Please:
 
 ---
 
-## <span style="color: #ff00ff;">▸</span> Resources
+## ${\color{magenta}▸}$ Resources
 
 - **llama.cpp**: https://github.com/ggerganov/llama.cpp
 - **Model Hub**: https://huggingface.co/models?library=gguf
@@ -857,7 +841,7 @@ Contributions welcome! Please:
 
 ---
 
-## <span style="color: #ff00ff;">▸</span> License
+## ${\color{magenta}▸}$ License
 
 MIT License - See LICENSE file for details
 
