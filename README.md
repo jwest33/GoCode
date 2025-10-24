@@ -865,8 +865,8 @@ MIT License - See LICENSE file for details
 
 <div align="center">
 
-**Built for local AI development**
+**Built with love**
 
-<sub>Cyan • Pink • Purple • Green • Red • Yellow</sub>
+<sub>- Jwest33</sub>
 
 </div>
