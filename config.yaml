@@ -13,7 +13,7 @@ llm:
 
   # llama-server Configuration (only used if auto_manage is true)
   server:
-    model_path: "C:\\models\\Qwen3-Yoyo-V3-42B-A3B-Thinking\\Qwen3-Yoyo-V3-42B-A3B-Thinking.gguf"
+    model_path: "C:\\models\\Qwen3-Yoyo-V3-42B-A3B-Thinking-TOTAL-RECALL-ST-TNG-III.i1-Q4_K_M\\Qwen3-Yoyo-V3-42B-A3B-Thinking-TOTAL-RECALL-ST-TNG-III.i1-Q4_K_M.gguf"
     host: "0.0.0.0"
     port: 8080
     ctx_size: 102400
