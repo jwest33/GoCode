@@ -1,6 +1,4 @@
 # Binaries
-coder.exe
-coder
 *.exe
 
 # Logs
@@ -8,7 +6,6 @@ logs/
 *.log
 
 # Session data
-TODO.md
 .coder_history
 
 # Go
