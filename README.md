@@ -54,7 +54,7 @@ ${\color{cyan}▸}$ GoCode is an autonomous AI development assistant that runs e
 <tr><td><b>Background indexing</b></td><td>Builds search indices asynchronously</td></tr>
 </table>
 
-### ${\textsf{\color{cyan}Context \& Memory Management}}$
+### ${\textsf{\color{cyan}Context and Memory Management}}$
 
 <table>
 <tr><td width="30%"><b>Budget-based allocation</b></td><td>Intelligent token distribution across system, user, context, history, and response</td></tr>
@@ -133,7 +133,7 @@ ${\color{cyan}▸}$ GoCode is an autonomous AI development assistant that runs e
 
 </details>
 
-### ${\textsf{\color{cyan}Observability \& Persistence}}$
+### ${\textsf{\color{cyan}Observability and Persistence}}$
 
 <table>
 <tr><td width="30%"><b>Structured logging</b></td><td>Async JSONL logs with user inputs, LLM requests/responses, tool calls, and token counts</td></tr>
