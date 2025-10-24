@@ -10,14 +10,14 @@ import (
 // Synthwave color palette
 var (
 	// Primary colors
-	Cyan    = color.New(color.FgCyan)
-	Pink    = color.New(color.FgMagenta)
-	Purple  = color.New(color.FgMagenta, color.FgCyan) // Blend effect
-	Green   = color.New(color.FgGreen)
-	Red     = color.New(color.FgRed)
-	Yellow  = color.New(color.FgYellow)
-	Gray    = color.New(color.FgHiBlack)
-	White   = color.New(color.FgWhite)
+	Cyan   = color.New(color.FgCyan)
+	Pink   = color.New(color.FgMagenta)
+	Purple = color.New(color.FgMagenta, color.FgCyan) // Blend effect
+	Green  = color.New(color.FgGreen)
+	Red    = color.New(color.FgRed)
+	Yellow = color.New(color.FgYellow)
+	Gray   = color.New(color.FgHiBlack)
+	White  = color.New(color.FgWhite)
 
 	// Bold variants for emphasis
 	CyanBold   = color.New(color.FgCyan, color.Bold)
@@ -110,12 +110,12 @@ type jsonHighlighter struct {
 }
 
 var jsonColors = jsonHighlighter{
-	key:    color.New(color.FgMagenta),      // Pink for keys (synthwave)
-	string: color.New(color.FgGreen),        // Green for string values
-	number: color.New(color.FgCyan),         // Cyan for numbers
-	bool:   color.New(color.FgYellow),       // Yellow for booleans
-	null:   color.New(color.FgHiBlack),      // Gray for null
-	punct:  color.New(color.FgWhite),        // White for punctuation
+	key:    color.New(color.FgMagenta), // Pink for keys (synthwave)
+	string: color.New(color.FgGreen),   // Green for string values
+	number: color.New(color.FgCyan),    // Cyan for numbers
+	bool:   color.New(color.FgYellow),  // Yellow for booleans
+	null:   color.New(color.FgHiBlack), // Gray for null
+	punct:  color.New(color.FgWhite),   // White for punctuation
 }
 
 // HighlightJSON applies syntax highlighting to JSON strings
@@ -241,7 +241,7 @@ func SynthwaveBanner(version string) string {
 		"  " + Cyan.Sprint("║") + "                                                       " + Cyan.Sprint("║"),
 		"  " + Cyan.Sprint("║") + "            " + CyanBold.Sprint("░█▀▀█ █▀▀█ ░█▀▀█ █▀▀█ █▀▀▄ █▀▀") + "             " + Cyan.Sprint("║"),
 		"  " + Cyan.Sprint("║") + "            " + PinkBold.Sprint("░█░▄▄░█░░█░░█░░░░█░░█░█░░█░█▀▀") + "             " + Cyan.Sprint("║"),
-		"  " + Cyan.Sprint("║") + "            " + Purple.Sprint("░█▄▄█ ▀▀▀▀ ░█▄▄█ ▀▀▀▀ ▀▀▀  ▀▀▀") + "             " + Cyan.Sprint("║"),
+		"  " + Cyan.Sprint("║") + "            " + CyanBold.Sprint("░█▄▄█ ▀▀▀▀ ░█▄▄█ ▀▀▀▀ ▀▀▀  ▀▀▀") + "             " + Cyan.Sprint("║"),
 		"  " + Cyan.Sprint("║") + "                                                       " + Cyan.Sprint("║"),
 		"  " + Cyan.Sprint("║") + "               " + Pink.Sprint("AI-Powered Development Assistant") + "        " + Cyan.Sprint("║"),
 		"  " + Cyan.Sprint("║") + "                      " + Dim("version "+version) + "                     " + Cyan.Sprint("║"),

@@ -10,8 +10,10 @@ import (
 	"github.com/chzyer/readline"
 	"github.com/jake/gocode/internal/config"
 	"github.com/jake/gocode/internal/confirmation"
+	"github.com/jake/gocode/internal/initialization"
 	"github.com/jake/gocode/internal/llm"
 	"github.com/jake/gocode/internal/logging"
+	"github.com/jake/gocode/internal/prompts"
 	"github.com/jake/gocode/internal/theme"
 	"github.com/jake/gocode/internal/tools"
 )
@@ -23,11 +25,12 @@ type Agent struct {
 	toolRegistry  *tools.Registry
 	confirmSys    *confirmation.System
 	logger        *logging.Logger
+	promptMgr     *prompts.PromptManager
 	messages      []llm.Message
 	rl            *readline.Instance
 }
 
-func New(cfg *config.Config) (*Agent, error) {
+func New(cfg *config.Config, projectAnalysis *initialization.ProjectAnalysis) (*Agent, error) {
 	// Initialize logger
 	logger, err := logging.New(&cfg.Logging, cfg.BaseDir)
 	if err != nil {
@@ -82,6 +85,12 @@ func New(cfg *config.Config) (*Agent, error) {
 	// Initialize confirmation system
 	confirmSys := confirmation.New(&cfg.Confirmation)
 
+	// Initialize prompt manager
+	promptMgr, err := prompts.NewPromptManager()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create prompt manager: %w", err)
+	}
+
 	// Initialize readline
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:          theme.GetPinkPrompt(),
@@ -93,18 +102,25 @@ func New(cfg *config.Config) (*Agent, error) {
 		return nil, fmt.Errorf("failed to initialize readline: %w", err)
 	}
 
-	// Add system message
+	// Build tool info for system prompt
+	toolInfos := buildToolInfos(registry)
+
+	// Build project context if analysis is available
+	var projectContext *prompts.ProjectContext
+	if projectAnalysis != nil {
+		projectContext = buildProjectContext(projectAnalysis)
+	}
+
+	// Render system message with project context
+	systemPrompt, err := promptMgr.RenderSystemWithProject(cfg, toolInfos, projectContext)
+	if err != nil {
+		return nil, fmt.Errorf("failed to render system prompt: %w", err)
+	}
+
 	messages := []llm.Message{
 		{
-			Role: "system",
-			Content: `You are a helpful coding assistant. You have access to various tools to help with software development tasks.
-
-When using tools:
-- Always read files before editing them
-- Use glob/grep to search for files and content
-- Use bash for running commands
-- Use todo_write to track tasks
-- Be thorough and precise in your responses`,
+			Role:    "system",
+			Content: systemPrompt,
 		},
 	}
 
@@ -115,6 +131,7 @@ When using tools:
 		toolRegistry:  registry,
 		confirmSys:    confirmSys,
 		logger:        logger,
+		promptMgr:     promptMgr,
 		messages:      messages,
 		rl:            rl,
 	}, nil
@@ -279,4 +296,119 @@ func (a *Agent) convertToolCallsToInterface(toolCalls []llm.ToolCall) []interfac
 		result[i] = m
 	}
 	return result
+}
+
+// buildToolInfos creates tool information for the system prompt
+func buildToolInfos(registry *tools.Registry) []prompts.ToolInfo {
+	toolCategories := map[string]string{
+		"read":            "file",
+		"write":           "file",
+		"edit":            "file",
+		"glob":            "search",
+		"grep":            "search",
+		"bash":            "bash",
+		"bash_output":     "bash",
+		"kill_shell":      "bash",
+		"web_fetch":       "web",
+		"web_search":      "web",
+		"todo_write":      "task",
+		"find_definition": "lsp",
+		"find_references": "lsp",
+		"list_symbols":    "lsp",
+	}
+
+	var toolInfos []prompts.ToolInfo
+	for _, tool := range registry.All() {
+		category := toolCategories[tool.Name()]
+		if category == "" {
+			category = "other"
+		}
+
+		toolInfos = append(toolInfos, prompts.ToolInfo{
+			Name:        tool.Name(),
+			Description: tool.Description(),
+			Category:    category,
+		})
+	}
+
+	return toolInfos
+}
+
+// buildProjectContext converts ProjectAnalysis to ProjectContext for prompt rendering
+func buildProjectContext(analysis *initialization.ProjectAnalysis) *prompts.ProjectContext {
+	// Build primary languages string
+	primaryLangs := []string{}
+	for _, lang := range analysis.Languages {
+		if lang.Primary {
+			primaryLangs = append(primaryLangs, lang.Name)
+		}
+	}
+	primaryLanguages := strings.Join(primaryLangs, " + ")
+	if primaryLanguages == "" && len(analysis.Languages) > 0 {
+		primaryLanguages = analysis.Languages[0].Name
+	}
+
+	// Build frameworks string
+	frameworkNames := []string{}
+	for _, fw := range analysis.Frameworks {
+		frameworkNames = append(frameworkNames, fw.Name)
+	}
+	frameworks := strings.Join(frameworkNames, ", ")
+
+	// Build tech stack description
+	techStack := buildTechStackDescription(analysis)
+
+	// Build structure description
+	structure := buildStructureDescription(analysis)
+
+	// Get git branch
+	gitBranch := ""
+	if analysis.GitInfo != nil && analysis.GitInfo.CurrentBranch != "" {
+		gitBranch = analysis.GitInfo.CurrentBranch
+	}
+
+	return &prompts.ProjectContext{
+		ProjectName:      analysis.ProjectName,
+		PrimaryLanguages: primaryLanguages,
+		TotalFiles:       analysis.Statistics.TotalFiles,
+		CodeFiles:        analysis.Statistics.CodeFiles,
+		TotalLines:       analysis.Statistics.TotalLines,
+		Frameworks:       frameworks,
+		GitBranch:        gitBranch,
+		TechStack:        techStack,
+		Structure:        structure,
+	}
+}
+
+// buildTechStackDescription creates a description of the tech stack
+func buildTechStackDescription(analysis *initialization.ProjectAnalysis) string {
+	var parts []string
+
+	// Languages
+	for _, lang := range analysis.Languages {
+		parts = append(parts, fmt.Sprintf("- **%s**: %d files", lang.Name, lang.FileCount))
+	}
+
+	return strings.Join(parts, "\n")
+}
+
+// buildStructureDescription creates a description of the project structure
+func buildStructureDescription(analysis *initialization.ProjectAnalysis) string {
+	var parts []string
+
+	if analysis.Structure.HasSrcDir {
+		parts = append(parts, "- Source code organized in `src/` directory")
+	}
+	if analysis.Structure.HasTestsDir {
+		parts = append(parts, "- Tests located in dedicated test directory")
+	}
+	if len(analysis.Structure.EntryPoints) > 0 {
+		parts = append(parts, fmt.Sprintf("- Entry points: %s", strings.Join(analysis.Structure.EntryPoints, ", ")))
+	}
+
+	if len(parts) == 0 {
+		return "- Standard project layout"
+	}
+
+	return strings.Join(parts, "\n")
 }

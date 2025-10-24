@@ -1,13 +1,17 @@
 package main
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+	"time"
 
 	"github.com/jake/gocode/internal/agent"
 	"github.com/jake/gocode/internal/config"
+	"github.com/jake/gocode/internal/initialization"
 	"github.com/jake/gocode/internal/theme"
 )
 
@@ -60,8 +64,14 @@ func main() {
 	}
 	cfg.WorkingDir = workingDir
 
+	// Handle first-run initialization
+	var projectAnalysis *initialization.ProjectAnalysis
+	if shouldInit, analysis := handleInitialization(workingDir); shouldInit {
+		projectAnalysis = analysis
+	}
+
 	// Create and run agent
-	a, err := agent.New(cfg)
+	a, err := agent.New(cfg, projectAnalysis)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "%s\n", theme.Error("Error creating agent: %v", err))
 		os.Exit(1)
@@ -71,6 +81,79 @@ func main() {
 		fmt.Fprintf(os.Stderr, "%s\n", theme.Error("Error running agent: %v", err))
 		os.Exit(1)
 	}
+}
+
+// handleInitialization checks if this is a first run and handles initialization
+func handleInitialization(workingDir string) (bool, *initialization.ProjectAnalysis) {
+	// Create detector
+	detector, err := initialization.NewDetector(workingDir)
+	if err != nil {
+		// If we can't create detector, just continue without initialization
+		return false, nil
+	}
+
+	// Check if this is first run
+	if !detector.ShouldInitialize() {
+		// Not first run, try to load cached analysis
+		analyzer := initialization.NewAnalyzer(workingDir, detector)
+		if analysis, err := analyzer.LoadCachedAnalysis(); err == nil {
+			return true, analysis
+		}
+		return false, nil
+	}
+
+	// Prompt user for initialization
+	projectName := filepath.Base(workingDir)
+	if !initialization.DisplayInitPrompt(projectName) {
+		// User declined, mark as skipped
+		detector.MarkSkipped()
+		initialization.DisplaySkipMessage()
+		return false, nil
+	}
+
+	// User accepted, perform initialization
+	initialization.DisplayInitProgress("Analyzing project structure...")
+
+	analyzer := initialization.NewAnalyzer(workingDir, detector)
+	analysis, err := analyzer.Analyze()
+	if err != nil {
+		initialization.DisplayInitError(err)
+		detector.MarkSkipped()
+		return false, nil
+	}
+
+	// Generate recommendations
+	initialization.DisplayInitProgress("Generating recommendations...")
+	featureDetector := initialization.NewFeatureDetector(analysis)
+	recommendations := featureDetector.GenerateRecommendations()
+	analysis.Recommendations = recommendations
+
+	// Start background indexing (non-blocking)
+	indexer := initialization.NewIndexer(workingDir, detector, analyzer)
+	go func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+		defer cancel()
+		<-indexer.StartBackgroundIndexing(ctx)
+	}()
+
+	// Display summary
+	initialization.DisplaySummary(analysis, recommendations)
+
+	// Mark as initialized
+	detector.MarkInitialized()
+
+	// Create .gitignore recommendation
+	gitignorePath := filepath.Join(workingDir, ".gitignore")
+	if _, err := os.Stat(gitignorePath); err == nil {
+		// .gitignore exists, check if .gocode is already in it
+		content, _ := os.ReadFile(gitignorePath)
+		if !strings.Contains(string(content), ".gocode") {
+			fmt.Println(theme.Dim("💡 Tip: Add .gocode/ to your .gitignore file"))
+			fmt.Println()
+		}
+	}
+
+	return true, analysis
 }
 
 // findConfig searches for config.yaml in multiple locations

@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/jake/gocode/internal/llm"
+	"github.com/jake/gocode/internal/prompts"
 )
 
 // BudgetConfig defines context window budget allocation
@@ -33,15 +34,21 @@ func DefaultBudgetConfig() BudgetConfig {
 
 // Manager handles context window budget and message pruning
 type Manager struct {
-	config   BudgetConfig
-	messages []llm.Message
+	config    BudgetConfig
+	messages  []llm.Message
+	promptMgr *prompts.PromptManager
 }
 
 // NewManager creates a new context manager
 func NewManager(config BudgetConfig) *Manager {
+	// Try to create prompt manager, but don't fail if it errors
+	// (for backward compatibility with code that doesn't need templates)
+	promptMgr, _ := prompts.NewPromptManager()
+
 	return &Manager{
-		config:   config,
-		messages: []llm.Message{},
+		config:    config,
+		messages:  []llm.Message{},
+		promptMgr: promptMgr,
 	}
 }
 
@@ -216,6 +223,29 @@ func (m *Manager) PrepareMessagesForLLM(retrievedContext []string) []llm.Message
 
 // buildContextMessage creates a message with retrieved context
 func (m *Manager) buildContextMessage(contexts []string) llm.Message {
+	var content string
+
+	// Try to use template if prompt manager is available
+	if m.promptMgr != nil {
+		rendered, err := m.promptMgr.RenderContextInjection(contexts, "")
+		if err == nil {
+			content = rendered
+		} else {
+			// Fallback to simple formatting
+			content = m.buildContextMessageSimple(contexts)
+		}
+	} else {
+		content = m.buildContextMessageSimple(contexts)
+	}
+
+	return llm.Message{
+		Role:    "user",
+		Content: content,
+	}
+}
+
+// buildContextMessageSimple creates a simple context message without templates
+func (m *Manager) buildContextMessageSimple(contexts []string) string {
 	var content strings.Builder
 
 	content.WriteString("# Retrieved Context\n\n")
@@ -228,10 +258,7 @@ func (m *Manager) buildContextMessage(contexts []string) llm.Message {
 		content.WriteString("\n```\n\n")
 	}
 
-	return llm.Message{
-		Role:    "user",
-		Content: content.String(),
-	}
+	return content.String()
 }
 
 // GetAvailableContextBudget returns how many tokens we can use for retrieved context

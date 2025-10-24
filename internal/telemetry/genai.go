@@ -142,8 +142,9 @@ func (ls *LLMSpan) EndWithError(err error) {
 
 // ToolSpan creates a span for tool execution
 type ToolSpan struct {
-	span trace.Span
-	ctx  context.Context
+	span     trace.Span
+	ctx      context.Context
+	hasError bool
 }
 
 // StartToolSpan starts a new tool execution span
@@ -186,13 +187,14 @@ func (ts *ToolSpan) SetResult(result string, success bool) {
 
 // SetError records a tool error
 func (ts *ToolSpan) SetError(err error) {
+	ts.hasError = true
 	ts.span.RecordError(err)
 	ts.span.SetStatus(codes.Error, err.Error())
 }
 
 // End ends the span
 func (ts *ToolSpan) End() {
-	if ts.span.Status().Code != codes.Error {
+	if !ts.hasError {
 		ts.span.SetStatus(codes.Ok, "")
 	}
 	ts.span.End()

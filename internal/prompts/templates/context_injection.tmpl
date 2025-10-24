@@ -1,0 +1,12 @@
+# Retrieved Context
+
+The following code snippets may be relevant to your query: "{{.Query}}"
+
+{{range $i, $ctx := .Contexts}}
+## Context {{add $i 1}}
+```
+{{$ctx}}
+```
+
+{{end}}
+Use this context to inform your response, but verify information by reading files directly if needed.
