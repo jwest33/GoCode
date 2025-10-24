@@ -2,7 +2,6 @@ package theme
 
 import (
 	"encoding/json"
-	"fmt"
 	"strings"
 
 	"github.com/fatih/color"
@@ -238,16 +237,20 @@ func HighlightJSON(jsonStr string) string {
 func SynthwaveBanner(version string) string {
 	lines := []string{
 		"",
-		"  ╔═══════════════════════════════════════════════════╗",
-		"  ║                                                   ║",
-		fmt.Sprintf("  ║                 %s %s                       ║", CyanBold.Sprint("CODER"), PinkBold.Sprint("AGENT")),
-		fmt.Sprintf("  ║                      %s                         ║", Purple.Sprint(version)),
-		"  ║                                                   ║",
-		"  ║     " + Cyan.Sprint("▄▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▄") + "           ║",
-		"  ║     " + Pink.Sprint("█") + "  Autonomous Coding Assistant    " + Pink.Sprint("█") + "           ║",
-		"  ║     " + Cyan.Sprint("▀▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▀") + "           ║",
-		"  ║                                                   ║",
-		"  ╚═══════════════════════════════════════════════════╝",
+		"  " + Cyan.Sprint("╔═══════════════════════════════════════════════════════╗"),
+		"  " + Cyan.Sprint("║") + "                                                       " + Cyan.Sprint("║"),
+		"  " + Cyan.Sprint("║") + "            " + CyanBold.Sprint("░█▀▀█ █▀▀█ ░█▀▀█ █▀▀█ █▀▀▄ █▀▀") + "             " + Cyan.Sprint("║"),
+		"  " + Cyan.Sprint("║") + "            " + PinkBold.Sprint("░█░▄▄░█░░█░░█░░░░█░░█░█░░█░█▀▀") + "             " + Cyan.Sprint("║"),
+		"  " + Cyan.Sprint("║") + "            " + Purple.Sprint("░█▄▄█ ▀▀▀▀ ░█▄▄█ ▀▀▀▀ ▀▀▀  ▀▀▀") + "             " + Cyan.Sprint("║"),
+		"  " + Cyan.Sprint("║") + "                                                       " + Cyan.Sprint("║"),
+		"  " + Cyan.Sprint("║") + "               " + Pink.Sprint("AI-Powered Development Assistant") + "        " + Cyan.Sprint("║"),
+		"  " + Cyan.Sprint("║") + "                      " + Dim("version "+version) + "                     " + Cyan.Sprint("║"),
+		"  " + Cyan.Sprint("║") + "                                                       " + Cyan.Sprint("║"),
+		"  " + Cyan.Sprint("║") + "     " + CyanBold.Sprint("►") + " " + Pink.Sprint("Autonomous code analysis and generation") + "         " + Cyan.Sprint("║"),
+		"  " + Cyan.Sprint("║") + "     " + CyanBold.Sprint("►") + " " + Pink.Sprint("Multi-tool workflow orchestration") + "               " + Cyan.Sprint("║"),
+		"  " + Cyan.Sprint("║") + "     " + CyanBold.Sprint("►") + " " + Pink.Sprint("Real-time task tracking") + "                         " + Cyan.Sprint("║"),
+		"  " + Cyan.Sprint("║") + "                                                       " + Cyan.Sprint("║"),
+		"  " + Cyan.Sprint("╚═══════════════════════════════════════════════════════╝"),
 		"",
 		"  " + Dim("Type 'exit' or press Ctrl+D to quit"),
 		"",
@@ -258,5 +261,5 @@ func SynthwaveBanner(version string) string {
 
 // GetPinkPrompt returns the pink-colored readline prompt
 func GetPinkPrompt() string {
-	return Pink.Sprint("❯") + " "
+	return Pink.Sprint(">") + " "
 }

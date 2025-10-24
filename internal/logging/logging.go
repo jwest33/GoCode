@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/jake/coder/internal/config"
+	"github.com/jake/gocode/internal/config"
 )
 
 type Logger struct {

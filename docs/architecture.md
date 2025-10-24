@@ -3,9 +3,9 @@
 ## Directory Structure
 
 ```
-coder/
+gocode/
 ├── cmd/
-│   └── coder/
+│   └── gocode/
 │       └── main.go              # Entry point
 ├── internal/
 │   ├── agent/
@@ -45,7 +45,7 @@ coder/
 
 ## Component Overview
 
-### 1. Main Entry (`cmd/coder/main.go`)
+### 1. Main Entry (`cmd/gocode/main.go`)
 - Loads configuration from `config.yaml`
 - Creates agent instance
 - Starts interactive REPL

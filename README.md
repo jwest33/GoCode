@@ -1,14 +1,14 @@
-# Coder - Local Claude Code Agent
+# GoCode - AI-Powered Development Assistant
 
-A local, fully configurable autonomous coding agent that replicates Claude Code's functionality with human-in-the-loop confirmation and comprehensive logging for GRPO fine-tuning.
+A local, fully configurable autonomous coding agent with human-in-the-loop confirmation and comprehensive logging for GRPO fine-tuning.
 
 ## Features
 
-- 🤖 **Auto-managed llama-server** - Automatically starts and stops llama-server
-- 📝 **Async logging** - Non-blocking JSONL logging for GRPO fine-tuning
-- 🛠️ **Full tool suite** - File ops, search, bash execution, web fetch, task management
-- ✋ **Human-in-the-loop** - Configurable confirmation for tool execution
-- 🔄 **Smart reuse** - Detects existing llama-server and reuses it
+- **Auto-managed llama-server** - Automatically starts and stops llama-server
+- **Async logging** - Non-blocking JSONL logging for GRPO fine-tuning
+- **Full tool suite** - File ops, search, bash execution, web fetch, task management
+- **Human-in-the-loop** - Configurable confirmation for tool execution
+- **Smart reuse** - Detects existing llama-server and reuses it
 
 ## Quick Start
 
@@ -34,7 +34,7 @@ All other settings have sensible defaults optimized for RTX 4090/5090.
 ### 3. Build
 
 ```bash
-go build -o coder.exe cmd/coder/main.go
+go build -o gocode.exe cmd/gocode/main.go
 ```
 
 ### 4. Add to PATH
@@ -51,9 +51,9 @@ See [INSTALL.md](INSTALL.md) for detailed installation options.
 
 ```bash
 # After adding to PATH and restarting PowerShell:
-coder --version
+gocode --version
 cd C:\Projects\MyApp
-coder
+gocode
 ```
 
 That's it! The agent will:
@@ -67,36 +67,36 @@ That's it! The agent will:
 
 **Option 1: Add to PATH**
 ```bash
-# Add C:\Users\Jake\coder to PATH
-coder  # Run from anywhere!
+# Add C:\Users\Jake\gocode to PATH
+gocode  # Run from anywhere!
 ```
 
 **Option 2: Specify config path**
 ```bash
 cd C:\anywhere
-coder --config C:\Users\Jake\coder\config.yaml
+gocode --config C:\Users\Jake\gocode\config.yaml
 ```
 
 **Option 3: Environment variable**
 ```bash
-set CODER_CONFIG=C:\Users\Jake\coder\config.yaml
-coder  # Automatically finds config
+set GOCODE_CONFIG=C:\Users\Jake\gocode\config.yaml
+gocode  # Automatically finds config
 ```
 
 **Option 4: Copy to home directory**
 ```bash
-mkdir %USERPROFILE%\.coder
-copy C:\Users\Jake\coder\config.yaml %USERPROFILE%\.coder\
-copy C:\Users\Jake\coder\coder.exe %USERPROFILE%\.coder\
-coder  # Searches ~/.coder/config.yaml
+mkdir %USERPROFILE%\.gocode
+copy C:\Users\Jake\gocode\config.yaml %USERPROFILE%\.gocode\
+copy C:\Users\Jake\gocode\gocode.exe %USERPROFILE%\.gocode\
+gocode  # Searches ~/.gocode/config.yaml
 ```
 
 The agent searches for `config.yaml` in this order:
 1. `--config` flag
-2. `CODER_CONFIG` environment variable
+2. `GOCODE_CONFIG` environment variable
 3. Current working directory
 4. Executable's directory
-5. `~/.coder/config.yaml`
+5. `~/.gocode/config.yaml`
 
 ## Usage
 
@@ -112,8 +112,8 @@ The agent will:
 3. Log all interactions to `logs/` directory (relative to config.yaml location)
 
 **Additional commands:**
-- `coder --version` - Show version
-- `coder --help` - Show usage help
+- `gocode --version` - Show version
+- `gocode --help` - Show usage help
 
 Type `exit` to quit.
 
@@ -127,10 +127,10 @@ File paths are intelligently managed:
 **Example:**
 ```bash
 cd C:\Projects\MyApp
-coder  # Config found at C:\Users\Jake\coder\config.yaml
+gocode  # Config found at C:\Users\Jake\gocode\config.yaml
 ```
 Results in:
-- Logs → `C:\Users\Jake\coder\logs\`
+- Logs → `C:\Users\Jake\gocode\logs\`
 - TODO.md → `C:\Projects\MyApp\TODO.md`
 
 ## Configuration
@@ -198,4 +198,4 @@ Logs are buffered (1000 entries) and written in the background for optimal perfo
 
 ### Server already running
 
-If llama-server is already running on the configured port, coder will detect and reuse it. It won't be shutdown when coder exits.
+If llama-server is already running on the configured port, gocode will detect and reuse it. It won't be shutdown when gocode exits.

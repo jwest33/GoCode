@@ -113,10 +113,10 @@ llm:
 
 ## Testing Checklist
 
-- [ ] Build succeeds: `go build -o coder.exe cmd/coder/main.go`
+- [ ] Build succeeds: `go build -o gocode.exe cmd/gocode/main.go`
 - [ ] Server auto-starts when not running
 - [ ] Server reuses existing instance when already running
-- [ ] Server shuts down on normal exit (if started by coder)
+- [ ] Server shuts down on normal exit (if started by gocode)
 - [ ] Server NOT shutdown on exit if external
 - [ ] Logging creates JSONL files in `logs/`
 - [ ] Logs contain all event types

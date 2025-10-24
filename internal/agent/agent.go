@@ -8,12 +8,12 @@ import (
 	"strings"
 
 	"github.com/chzyer/readline"
-	"github.com/jake/coder/internal/config"
-	"github.com/jake/coder/internal/confirmation"
-	"github.com/jake/coder/internal/llm"
-	"github.com/jake/coder/internal/logging"
-	"github.com/jake/coder/internal/theme"
-	"github.com/jake/coder/internal/tools"
+	"github.com/jake/gocode/internal/config"
+	"github.com/jake/gocode/internal/confirmation"
+	"github.com/jake/gocode/internal/llm"
+	"github.com/jake/gocode/internal/logging"
+	"github.com/jake/gocode/internal/theme"
+	"github.com/jake/gocode/internal/tools"
 )
 
 type Agent struct {
@@ -85,7 +85,7 @@ func New(cfg *config.Config) (*Agent, error) {
 	// Initialize readline
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:          theme.GetPinkPrompt(),
-		HistoryFile:     ".coder_history",
+		HistoryFile:     ".gocode_history",
 		InterruptPrompt: "^C",
 		EOFPrompt:       "exit",
 	})

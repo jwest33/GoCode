@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jake/coder/internal/config"
+	"github.com/jake/gocode/internal/config"
 	openai "github.com/sashabaranov/go-openai"
 )
 

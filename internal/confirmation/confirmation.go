@@ -6,8 +6,8 @@ import (
 	"os"
 	"strings"
 
-	"github.com/jake/coder/internal/config"
-	"github.com/jake/coder/internal/theme"
+	"github.com/jake/gocode/internal/config"
+	"github.com/jake/gocode/internal/theme"
 )
 
 type System struct {

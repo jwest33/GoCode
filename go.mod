@@ -1,4 +1,4 @@
-module github.com/jake/coder
+module github.com/jake/gocode
 
 go 1.23
 

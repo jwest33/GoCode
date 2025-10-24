@@ -8,8 +8,8 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/jake/coder/internal/config"
-	"github.com/jake/coder/internal/theme"
+	"github.com/jake/gocode/internal/config"
+	"github.com/jake/gocode/internal/theme"
 )
 
 type ServerManager struct {
@@ -28,11 +28,11 @@ func NewServerManager(cfg *config.LLMConfig) *ServerManager {
 // Start checks if server is running, and starts it if needed
 func (sm *ServerManager) Start() error {
 	if !sm.config.AutoManage {
-		fmt.Println(theme.Dim("📡 llama-server auto-management disabled, using external server"))
+		fmt.Println(theme.Dim("llama-server auto-management disabled, using external server"))
 		return nil
 	}
 
-	fmt.Println(theme.Dim("🔍 Checking if llama-server is already running..."))
+	fmt.Println(theme.Dim("Checking if llama-server is already running..."))
 
 	// Check if server is already available
 	if sm.isServerAvailable() {
@@ -41,7 +41,7 @@ func (sm *ServerManager) Start() error {
 		return nil
 	}
 
-	fmt.Println(theme.Agent("🚀 Starting llama-server..."))
+	fmt.Println(theme.Agent("Starting llama-server..."))
 
 	// Build command with all flags
 	args := sm.buildCommandArgs()
@@ -56,7 +56,7 @@ func (sm *ServerManager) Start() error {
 	}
 
 	sm.managedByUs = true
-	fmt.Println(theme.Dim(fmt.Sprintf("⏳ Waiting for llama-server to become ready (timeout: %ds)...", sm.config.StartupTimeout)))
+	fmt.Println(theme.Dim(fmt.Sprintf("Waiting for llama-server to become ready (timeout: %ds)...", sm.config.StartupTimeout)))
 
 	// Wait for server to be ready
 	timeout := time.Duration(sm.config.StartupTimeout) * time.Second

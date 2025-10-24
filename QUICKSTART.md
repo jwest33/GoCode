@@ -4,8 +4,8 @@
 
 ### 1. Build
 ```powershell
-cd C:\Users\Jake\coder
-go build -o coder.exe cmd/coder/main.go
+cd C:\Users\Jake\gocode
+go build -o gocode.exe cmd/gocode/main.go
 ```
 
 ### 2. Configure Model Path
@@ -26,8 +26,8 @@ llm:
 
 ### 5. Test
 ```powershell
-coder --version
-# Should show: Coder Agent v1.0.0
+gocode --version
+# Should show: GoCode v1.0.0
 ```
 
 ## Daily Usage
@@ -37,50 +37,50 @@ coder --version
 cd C:\Projects\MyAwesomeApp
 
 # Start the agent
-coder
+gocode
 
 # The agent will:
 # 1. Auto-start llama-server (if needed)
 # 2. Create TODO.md in your project directory
-# 3. Save logs to C:\Users\Jake\coder\logs\
+# 3. Save logs to C:\Users\Jake\gocode\logs\
 
 # Start coding!
-❯ help me implement a user authentication system
+> help me implement a user authentication system
 
 # Exit when done
-❯ exit
+> exit
 ```
 
 ## Commands
 
-- `coder` - Start the agent
-- `coder --version` - Show version
-- `coder --help` - Show help
-- `coder --config <path>` - Use custom config
+- `gocode` - Start the agent
+- `gocode --version` - Show version
+- `gocode --help` - Show help
+- `gocode --config <path>` - Use custom config
 
 ## File Locations
 
-When you run `coder` from `C:\Projects\MyApp`:
-- **Config**: `C:\Users\Jake\coder\config.yaml`
-- **Logs**: `C:\Users\Jake\coder\logs\` (all projects)
+When you run `gocode` from `C:\Projects\MyApp`:
+- **Config**: `C:\Users\Jake\gocode\config.yaml`
+- **Logs**: `C:\Users\Jake\gocode\logs\` (all projects)
 - **TODO.md**: `C:\Projects\MyApp\TODO.md` (this project)
 
 ## Troubleshooting
 
-### "coder is not recognized"
+### "gocode is not recognized"
 1. Did you run `setup-path.bat`?
 2. Did you **restart PowerShell** after?
-3. Verify: `$env:Path -split ';' | Select-String "coder"`
+3. Verify: `$env:Path -split ';' | Select-String "gocode"`
 
 ### llama-server fails to start
 1. Check model path in `config.yaml`
 2. Verify llama-server is in PATH: `llama-server --version`
-3. Check logs in `C:\Users\Jake\coder\logs\`
+3. Check logs in `C:\Users\Jake\gocode\logs\`
 
 ### Can't find config
 Set environment variable:
 ```powershell
-$env:CODER_CONFIG = "C:\Users\Jake\coder\config.yaml"
+$env:GOCODE_CONFIG = "C:\Users\Jake\gocode\config.yaml"
 ```
 
 ## Tips

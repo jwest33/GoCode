@@ -8,7 +8,7 @@ llm:
   context_window: 102400
 
   # llama-server Auto-Management
-  auto_manage: true  # If true, coder will start/stop llama-server automatically
+  auto_manage: true  # If true, gocode will start/stop llama-server automatically
   startup_timeout: 60  # Seconds to wait for llama-server to become ready
 
   # llama-server Configuration (only used if auto_manage is true)
