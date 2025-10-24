@@ -12,6 +12,13 @@ type Config struct {
 	Tools        ToolsConfig        `yaml:"tools"`
 	Confirmation ConfirmationConfig `yaml:"confirmation"`
 	Logging      LoggingConfig      `yaml:"logging"`
+	Embeddings   EmbeddingsConfig   `yaml:"embeddings"`
+	Retrieval    RetrievalConfig    `yaml:"retrieval"`
+	LSP          LSPConfig          `yaml:"lsp"`
+	Checkpoint   CheckpointConfig   `yaml:"checkpoint"`
+	Memory       MemoryConfig       `yaml:"memory"`
+	Telemetry    TelemetryConfig    `yaml:"telemetry"`
+	Evaluation   EvaluationConfig   `yaml:"evaluation"`
 	BaseDir      string             `yaml:"-"` // Set at runtime to config file's directory (for logs)
 	WorkingDir   string             `yaml:"-"` // Set at runtime to current working directory (for TODO.md)
 }
@@ -62,6 +69,57 @@ type LoggingConfig struct {
 	Level           string `yaml:"level"`
 	LogToolResults  bool   `yaml:"log_tool_results"`
 	LogReasoning    bool   `yaml:"log_reasoning"`
+}
+
+type EmbeddingsConfig struct {
+	Enabled   bool   `yaml:"enabled"`
+	Endpoint  string `yaml:"endpoint"`
+	Dimension int    `yaml:"dimension"`
+	DBPath    string `yaml:"db_path"`
+}
+
+type RetrievalConfig struct {
+	Enabled bool              `yaml:"enabled"`
+	Weights RetrievalWeights  `yaml:"weights"`
+}
+
+type RetrievalWeights struct {
+	BM25     float32 `yaml:"bm25"`
+	Semantic float32 `yaml:"semantic"`
+	Trigram  float32 `yaml:"trigram"`
+}
+
+type LSPConfig struct {
+	Enabled bool                      `yaml:"enabled"`
+	Servers map[string]LSPServerConfig `yaml:"servers"`
+}
+
+type LSPServerConfig struct {
+	Command string   `yaml:"command"`
+	Args    []string `yaml:"args"`
+}
+
+type CheckpointConfig struct {
+	Enabled      bool   `yaml:"enabled"`
+	DBPath       string `yaml:"db_path"`
+	AutoSave     bool   `yaml:"auto_save"`
+	SaveInterval int    `yaml:"save_interval"`
+}
+
+type MemoryConfig struct {
+	Enabled bool   `yaml:"enabled"`
+	DBPath  string `yaml:"db_path"`
+}
+
+type TelemetryConfig struct {
+	Enabled     bool   `yaml:"enabled"`
+	ServiceName string `yaml:"service_name"`
+	DBPath      string `yaml:"db_path"`
+}
+
+type EvaluationConfig struct {
+	Enabled      bool `yaml:"enabled"`
+	TrackMetrics bool `yaml:"track_metrics"`
 }
 
 func Load(path string) (*Config, error) {

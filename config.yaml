@@ -61,3 +61,55 @@ logging:
   level: "info"
   log_tool_results: true
   log_reasoning: true
+
+# Embeddings Configuration (for semantic search)
+embeddings:
+  enabled: false  # Set to true and start embedding server on port 8081
+  endpoint: "http://localhost:8081"
+  dimension: 384  # For nomic-embed-text or bge-small-en-v1.5
+  db_path: "embeddings.db"
+
+# Retrieval Configuration (hybrid search)
+retrieval:
+  enabled: false  # Set to true to enable automatic context retrieval
+  weights:
+    bm25: 0.4      # Keyword search weight
+    semantic: 0.5  # Semantic search weight (requires embeddings)
+    trigram: 0.1   # Fuzzy matching weight
+
+# LSP Configuration (code navigation)
+lsp:
+  enabled: false  # Set to true to enable LSP-based code navigation
+  servers:
+    go:
+      command: "gopls"
+      args: []
+    python:
+      command: "pylsp"
+      args: []
+    typescript:
+      command: "typescript-language-server"
+      args: ["--stdio"]
+
+# Checkpoint Configuration (session persistence)
+checkpoint:
+  enabled: false  # Set to true to enable session checkpointing
+  db_path: "checkpoints.db"
+  auto_save: true
+  save_interval: 5  # Auto-save every N messages
+
+# Memory Configuration (long-term memory)
+memory:
+  enabled: false  # Set to true to enable long-term memory
+  db_path: "memory.db"
+
+# Telemetry Configuration (OpenTelemetry tracing)
+telemetry:
+  enabled: false  # Set to true to enable telemetry
+  service_name: "gocode-agent"
+  db_path: "traces.db"
+
+# Evaluation Configuration (test execution & metrics)
+evaluation:
+  enabled: false  # Set to true to enable evaluation framework
+  track_metrics: true
