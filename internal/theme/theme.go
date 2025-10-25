@@ -7,24 +7,25 @@ import (
 	"github.com/fatih/color"
 )
 
-// Synthwave color palette
+// Synthwave color palette with custom RGB colors
 var (
-	// Primary colors
-	Cyan   = color.New(color.FgCyan)
-	Pink   = color.New(color.FgMagenta)
-	Purple = color.New(color.FgMagenta, color.FgCyan) // Blend effect
-	Green  = color.New(color.FgGreen)
-	Red    = color.New(color.FgRed)
-	Yellow = color.New(color.FgYellow)
-	Gray   = color.New(color.FgHiBlack)
-	White  = color.New(color.FgWhite)
+	// Primary synthwave colors using RGB
+	Cyan   = color.New(color.FgCyan).Add(color.Bold)                  // Electric cyan #00ffff
+	Pink   = color.RGB(255, 0, 110)                                   // Hot pink #ff006e
+	Purple = color.RGB(123, 44, 191)                                  // Deep purple #7b2cbf
+	Violet = color.RGB(189, 0, 255)                                   // Electric violet #bd00ff (for success)
+	Red    = color.RGB(255, 0, 90)                                    // Synthwave red #ff005a
+	Yellow = color.RGB(255, 208, 0)                                   // Neon gold #ffd000
+	Gray   = color.New(color.FgHiBlack)                               // Dimmed text
+	White  = color.New(color.FgWhite)                                 // White for punctuation
+	NeonBlue = color.RGB(0, 217, 255)                                 // Bright neon blue #00d9ff
 
 	// Bold variants for emphasis
-	CyanBold   = color.New(color.FgCyan, color.Bold)
-	PinkBold   = color.New(color.FgMagenta, color.Bold)
-	PurpleBold = color.New(color.FgMagenta, color.Bold)
-	GreenBold  = color.New(color.FgGreen, color.Bold)
-	RedBold    = color.New(color.FgRed, color.Bold)
+	CyanBold   = color.New(color.FgCyan).Add(color.Bold)
+	PinkBold   = color.RGB(255, 0, 110).Add(color.Bold)
+	PurpleBold = color.RGB(123, 44, 191).Add(color.Bold)
+	VioletBold = color.RGB(189, 0, 255).Add(color.Bold)
+	RedBold    = color.RGB(255, 0, 90).Add(color.Bold)
 )
 
 // Semantic color functions
@@ -49,14 +50,14 @@ func UserBold(format string, a ...interface{}) string {
 	return PinkBold.Sprintf(format, a...)
 }
 
-// Success returns green color for success messages
+// Success returns violet color for success messages (synthwave)
 func Success(format string, a ...interface{}) string {
-	return Green.Sprintf(format, a...)
+	return Violet.Sprintf(format, a...)
 }
 
-// SuccessBold returns bold green for emphasis
+// SuccessBold returns bold violet for emphasis
 func SuccessBold(format string, a ...interface{}) string {
-	return GreenBold.Sprintf(format, a...)
+	return VioletBold.Sprintf(format, a...)
 }
 
 // Error returns red color for error messages
@@ -110,10 +111,10 @@ type jsonHighlighter struct {
 }
 
 var jsonColors = jsonHighlighter{
-	key:    color.New(color.FgMagenta), // Pink for keys (synthwave)
-	string: color.New(color.FgGreen),   // Green for string values
-	number: color.New(color.FgCyan),    // Cyan for numbers
-	bool:   color.New(color.FgYellow),  // Yellow for booleans
+	key:    color.RGB(255, 0, 110),  // Hot pink for keys #ff006e
+	string: color.RGB(189, 0, 255),  // Electric violet for string values #bd00ff
+	number: color.RGB(0, 217, 255),  // Neon blue for numbers #00d9ff
+	bool:   color.RGB(255, 208, 0),  // Neon gold for booleans #ffd000
 	null:   color.New(color.FgHiBlack), // Gray for null
 	punct:  color.New(color.FgWhite),   // White for punctuation
 }

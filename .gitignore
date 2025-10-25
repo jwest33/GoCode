@@ -20,3 +20,6 @@ go.sum
 # OS
 .DS_Store
 Thumbs.db
+
+# misc
+images/

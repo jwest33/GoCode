@@ -69,9 +69,12 @@ type Function struct {
 }
 
 type CompletionResponse struct {
-	Content   string
-	ToolCalls []ToolCall
-	FinishReason string
+	Content         string
+	ToolCalls       []ToolCall
+	FinishReason    string
+	PromptTokens    int
+	CompletionTokens int
+	TotalTokens     int
 }
 
 func (c *Client) Complete(ctx context.Context, req CompletionRequest) (*CompletionResponse, error) {
@@ -156,8 +159,11 @@ func (c *Client) Complete(ctx context.Context, req CompletionRequest) (*Completi
 
 	choice := resp.Choices[0]
 	result := &CompletionResponse{
-		Content:      choice.Message.Content,
-		FinishReason: string(choice.FinishReason),
+		Content:          choice.Message.Content,
+		FinishReason:     string(choice.FinishReason),
+		PromptTokens:     resp.Usage.PromptTokens,
+		CompletionTokens: resp.Usage.CompletionTokens,
+		TotalTokens:      resp.Usage.TotalTokens,
 	}
 
 	// Set response attributes

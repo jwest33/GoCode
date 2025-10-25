@@ -39,6 +39,8 @@ tools:
     - grep
     - bash
     - todo_write
+    - store_memory
+    - recall_memory
     - web_fetch
     - web_search
 
