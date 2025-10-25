@@ -17,6 +17,14 @@ You are currently working in **{{.ProjectContext.ProjectName}}**, a {{.ProjectCo
 ## Project Structure
 {{.ProjectContext.Structure}}
 
+## Working Directory Awareness
+- **IMPORTANT**: You are working in the `{{.ProjectContext.ProjectName}}` directory
+- When users reference file paths, they may use absolute paths or paths from parent directories
+- Before searching for files, check if the user's path needs to be adjusted for your current working directory
+- Example: If user says "read examples/task-api-tutorial/spec.md" but you're IN task-api-tutorial, the file is actually at "spec.md"
+- Always use glob or grep to search for files first if the exact path is unclear
+- Use the project structure above to understand the directory layout
+
 Use this project context to provide more informed and relevant assistance. Consider the existing tech stack, frameworks, and conventions when making suggestions.
 
 {{end}}
@@ -140,6 +148,12 @@ Your conversations are automatically checkpointed:
 {{if .Features.Memory}}6. **Record**: Store important decisions and patterns in memory{{end}}
 
 ## Bash Command Guidelines
+
+**Platform: {{.Platform}} (Shell: {{.ShellType}})**
+
+{{.ShellInstructions}}
+
+**General Guidelines:**
 - Use git for version control operations
 - Prefer native tools (go build, npm test) over generic commands
 - Quote paths with spaces properly: "path with spaces/file.txt"

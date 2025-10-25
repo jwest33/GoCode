@@ -4,6 +4,7 @@ import (
 	"bytes"
 	_ "embed"
 	"fmt"
+	"runtime"
 	"text/template"
 
 	"github.com/jake/gocode/internal/config"
@@ -29,11 +30,14 @@ func NewPromptManager() (*PromptManager, error) {
 
 // SystemPromptData contains data for rendering the system prompt
 type SystemPromptData struct {
-	ContextWindow  int
-	ModelName      string
-	EnabledTools   []ToolInfo
-	Features       FeatureFlags
-	ProjectContext *ProjectContext
+	ContextWindow     int
+	ModelName         string
+	Platform          string
+	ShellType         string
+	ShellInstructions string
+	EnabledTools      []ToolInfo
+	Features          FeatureFlags
+	ProjectContext    *ProjectContext
 }
 
 // ProjectContext contains project-specific information for the prompt
@@ -73,11 +77,17 @@ func (pm *PromptManager) RenderSystem(cfg *config.Config, tools []ToolInfo) (str
 
 // RenderSystemWithProject renders the system prompt with optional project context
 func (pm *PromptManager) RenderSystemWithProject(cfg *config.Config, tools []ToolInfo, projectContext *ProjectContext) (string, error) {
+	// Get platform-specific shell information
+	shellType, shellInstructions := getPlatformShellInfo()
+
 	data := SystemPromptData{
-		ContextWindow:  cfg.LLM.ContextWindow,
-		ModelName:      cfg.LLM.Model,
-		EnabledTools:   tools,
-		ProjectContext: projectContext,
+		ContextWindow:     cfg.LLM.ContextWindow,
+		ModelName:         cfg.LLM.Model,
+		Platform:          runtime.GOOS,
+		ShellType:         shellType,
+		ShellInstructions: shellInstructions,
+		EnabledTools:      tools,
+		ProjectContext:    projectContext,
 		Features: FeatureFlags{
 			LSP:        cfg.LSP.Enabled,
 			Retrieval:  cfg.Retrieval.Enabled,
@@ -135,5 +145,46 @@ func templateFuncs() template.FuncMap {
 			}
 			return fmt.Sprintf("%d", n)
 		},
+	}
+}
+
+// getPlatformShellInfo returns the shell type and detailed instructions based on the current platform
+func getPlatformShellInfo() (shellType string, instructions string) {
+	switch runtime.GOOS {
+	case "windows":
+		return "cmd", `**IMPORTANT**: You are running on Windows. The bash tool executes commands through cmd.exe
+
+**Windows Command Guidelines:**
+- DO NOT use Unix commands like: touch, mkdir -p, rm -rf, ls, cat, grep, etc.
+- For creating directories: Use "mkdir dirname" (without -p flag) one level at a time
+- For creating files: Create directories first with mkdir, then use the write tool
+- For deletion: Use "del" (files) or "rmdir /s /q" (directories with contents)
+- For listing files: Use "dir" instead of "ls"
+- Path separators: Use forward slashes / or escaped backslashes \\ in paths
+- Common commands:
+  * dir - list directory contents
+  * cd - change directory
+  * copy - copy files
+  * move - move/rename files
+  * type - display file contents (use read tool instead)
+  * echo - output text`
+
+	case "darwin":
+		return "bash", `You are running on macOS (Darwin).
+
+**Available Commands:**
+- Unix/bash commands are fully available
+- mkdir -p, touch, rm -rf, cp, mv, etc. all work as expected
+- Use standard Unix path conventions with forward slashes /
+- Common tools: git, make, curl, grep, find, etc.`
+
+	default: // linux and other unix-like systems
+		return "bash", `You are running on Linux.
+
+**Available Commands:**
+- Unix/bash commands are fully available
+- mkdir -p, touch, rm -rf, cp, mv, etc. all work as expected
+- Use standard Unix path conventions with forward slashes /
+- Common tools: git, make, curl, grep, find, etc.`
 	}
 }

@@ -35,7 +35,7 @@ You should see GoCode start up, possibly with a project initialization prompt. I
 
 **Prompt to type:**
 ```
-I want to build a Task Management REST API in Go. I have a detailed specification in this file. Please read examples/task-api/initial-spec.md and create a plan for implementing this project.
+I want to build a Task Management REST API in Go. I have a detailed specification in this file. Please read initial-spec.md and create a plan for implementing this project.
 ```
 
 **What to expect:**

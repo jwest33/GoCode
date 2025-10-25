@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/chzyer/readline"
 	"github.com/jake/gocode/internal/config"
@@ -28,6 +30,7 @@ type Agent struct {
 	promptMgr     *prompts.PromptManager
 	messages      []llm.Message
 	rl            *readline.Instance
+	historyFile   string
 }
 
 func New(cfg *config.Config, projectAnalysis *initialization.ProjectAnalysis) (*Agent, error) {
@@ -124,6 +127,9 @@ func New(cfg *config.Config, projectAnalysis *initialization.ProjectAnalysis) (*
 		},
 	}
 
+	// Set up conversation history file
+	historyFile := filepath.Join(cfg.WorkingDir, ".gocode_conversation_history")
+
 	return &Agent{
 		config:        cfg,
 		llmClient:     llmClient,
@@ -134,6 +140,7 @@ func New(cfg *config.Config, projectAnalysis *initialization.ProjectAnalysis) (*
 		promptMgr:     promptMgr,
 		messages:      messages,
 		rl:            rl,
+		historyFile:   historyFile,
 	}, nil
 }
 
@@ -176,6 +183,9 @@ func (a *Agent) processInput(input string) error {
 		Content: input,
 	})
 
+	// Append to conversation history
+	a.appendToConversationHistory("user", input)
+
 	// Main conversation loop
 	for {
 		// Prepare tools for LLM
@@ -211,6 +221,8 @@ func (a *Agent) processInput(input string) error {
 		// Display assistant response
 		if resp.Content != "" {
 			fmt.Printf("\n%s\n", theme.Agent(resp.Content))
+			// Append assistant response to conversation history
+			a.appendToConversationHistory("assistant", resp.Content)
 		}
 
 		// Handle tool calls
@@ -227,7 +239,7 @@ func (a *Agent) processInput(input string) error {
 				a.logger.LogToolCall(toolCall.Function.Name, toolCall.Function.Arguments)
 
 				// Check if confirmation needed
-				if a.confirmSys.ShouldConfirm(toolCall.Function.Name) {
+				if a.confirmSys.ShouldConfirm(toolCall.Function.Name, toolCall.Function.Arguments) {
 					approved, err := a.confirmSys.RequestConfirmation(toolCall.Function.Name, toolCall.Function.Arguments)
 					if err != nil {
 						return err
@@ -411,4 +423,22 @@ func buildStructureDescription(analysis *initialization.ProjectAnalysis) string 
 	}
 
 	return strings.Join(parts, "\n")
+}
+
+// appendToConversationHistory appends a message to the conversation history file
+func (a *Agent) appendToConversationHistory(role, content string) {
+	timestamp := time.Now().Format("2006-01-02 15:04:05")
+	separator := strings.Repeat("=", 80)
+
+	entry := fmt.Sprintf("\n%s\n[%s] %s:\n%s\n%s\n",
+		separator, timestamp, strings.ToUpper(role), separator, content)
+
+	f, err := os.OpenFile(a.historyFile, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		// Silently fail - history is not critical
+		return
+	}
+	defer f.Close()
+
+	f.WriteString(entry)
 }
