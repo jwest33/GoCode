@@ -58,9 +58,17 @@ type ToolsConfig struct {
 }
 
 type ConfirmationConfig struct {
-	Mode               string   `yaml:"mode"`
-	AutoApproveTools   []string `yaml:"auto_approve_tools"`
-	AlwaysConfirmTools []string `yaml:"always_confirm_tools"`
+	Mode               string                `yaml:"mode"` // "interactive", "auto", "never", "autonomous", "destructive_only"
+	AutoApproveTools   []string              `yaml:"auto_approve_tools"`
+	AlwaysConfirmTools []string              `yaml:"always_confirm_tools"`
+	AutonomousRules    AutonomousRulesConfig `yaml:"autonomous_rules"`
+}
+
+type AutonomousRulesConfig struct {
+	AutoApproveReadonly      bool     `yaml:"auto_approve_readonly"`
+	AutoApproveWithinWorkdir bool     `yaml:"auto_approve_within_workdir"`
+	RejectDangerousPatterns  bool     `yaml:"reject_dangerous_patterns"`
+	DangerousPatterns        []string `yaml:"dangerous_patterns"`
 }
 
 type LoggingConfig struct {

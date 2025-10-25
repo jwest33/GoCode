@@ -13,25 +13,42 @@ import (
 )
 
 type System struct {
-	config     *config.ConfirmationConfig
-	reader     *bufio.Reader
-	workingDir string
+	config        *config.ConfirmationConfig
+	reader        *bufio.Reader
+	workingDir    string
+	safetyChecker *SafetyChecker
 }
 
 func New(cfg *config.ConfirmationConfig) *System {
 	workingDir, _ := os.Getwd()
+
+	// Create safety checker with custom patterns if configured
+	var customPatterns []string
+	if cfg.AutonomousRules.DangerousPatterns != nil {
+		customPatterns = cfg.AutonomousRules.DangerousPatterns
+	}
+	safetyChecker := NewSafetyChecker(customPatterns)
+
 	return &System{
-		config:     cfg,
-		reader:     bufio.NewReader(os.Stdin),
-		workingDir: workingDir,
+		config:        cfg,
+		reader:        bufio.NewReader(os.Stdin),
+		workingDir:    workingDir,
+		safetyChecker: safetyChecker,
 	}
 }
 
 func (s *System) ShouldConfirm(toolName string, args string) bool {
+	// "never" mode: never confirm anything, auto-approve all
+	if s.config.Mode == "never" {
+		return false
+	}
+
+	// "auto" mode: auto-approve everything (legacy, same as "never")
 	if s.config.Mode == "auto" {
 		return false
 	}
 
+	// "interactive" mode: smart defaults with user prompts
 	if s.config.Mode == "interactive" {
 		// Check if tool is in auto-approve list
 		for _, t := range s.config.AutoApproveTools {
@@ -57,6 +74,7 @@ func (s *System) ShouldConfirm(toolName string, args string) bool {
 		return true
 	}
 
+	// "destructive_only" mode: only confirm dangerous operations
 	if s.config.Mode == "destructive_only" {
 		// Only confirm tools in always_confirm list
 		for _, t := range s.config.AlwaysConfirmTools {
@@ -67,6 +85,38 @@ func (s *System) ShouldConfirm(toolName string, args string) bool {
 		return false
 	}
 
+	// "autonomous" mode: apply safety rules
+	if s.config.Mode == "autonomous" {
+		// Check for dangerous patterns if enabled
+		if s.config.AutonomousRules.RejectDangerousPatterns {
+			isDangerous, reason := s.safetyChecker.IsDangerous(toolName, args)
+			if isDangerous {
+				// Reject dangerous operations by returning error in RequestConfirmation
+				// For now, we'll block it by requiring confirmation
+				fmt.Printf("\n%s %s\n", theme.Error("⚠ Dangerous operation detected:"), reason)
+				return true // Require confirmation
+			}
+		}
+
+		// Auto-approve readonly tools if enabled
+		if s.config.AutonomousRules.AutoApproveReadonly && IsReadOnlyTool(toolName) {
+			return false
+		}
+
+		// Auto-approve operations within working directory if enabled
+		if s.config.AutonomousRules.AutoApproveWithinWorkdir {
+			if toolName == "write" || toolName == "edit" {
+				if s.isWithinWorkingDir(args) {
+					return false
+				}
+			}
+		}
+
+		// Default: require confirmation for operations not covered by rules
+		return true
+	}
+
+	// Default: don't confirm
 	return false
 }
 

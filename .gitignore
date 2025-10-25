@@ -9,7 +9,7 @@ logs/
 .coder_history
 
 # Go
-go.sum
+# Note: go.sum should be committed to ensure reproducible builds
 
 # IDE
 .vscode/
@@ -23,3 +23,4 @@ Thumbs.db
 
 # misc
 images/
+benchmarks

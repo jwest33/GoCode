@@ -315,7 +315,7 @@ func (a *Agent) processInput(input string) error {
 
 		resp, err := a.llmClient.Complete(context.Background(), req)
 		if err != nil {
-			return fmt.Errorf("LLM completion failed: %w", err)
+			return fmt.Errorf("llm completion failed: %w", err)
 		}
 
 		a.logger.LogLLMResponse(resp.Content, a.convertToolCallsToInterface(resp.ToolCalls))
@@ -804,4 +804,222 @@ func (a *Agent) appendToConversationHistory(role, content string) {
 	defer f.Close()
 
 	f.WriteString(entry)
+}
+
+// RunAutonomous executes the agent autonomously with a single task
+// This method is designed for non-interactive use cases like benchmarking and CI/CD
+func (a *Agent) RunAutonomous(task string, options *AutonomousOptions) (*AutonomousResult, error) {
+	// Use defaults if options not provided
+	if options == nil {
+		options = DefaultAutonomousOptions()
+	}
+
+	// Start services
+	defer a.serverManager.Stop()
+	defer a.logger.Close()
+	if a.ltm != nil {
+		defer a.ltm.Close()
+	}
+
+	// Start token monitor
+	a.tokenMonitor.Start()
+	defer a.tokenMonitor.Stop()
+
+	// Create completion detector
+	detector := NewCompletionDetector(options)
+
+	// Initialize result
+	result := &AutonomousResult{
+		Success: false,
+	}
+
+	// Log the initial task
+	a.logger.LogUserInput(task)
+
+	// Inject plan context if relevant
+	userInput := task
+	if a.planMgr != nil && a.planMgr.ShouldInjectPlanContext(task) {
+		planContext := a.planMgr.GetCurrentContext()
+		if planContext != "" {
+			userInput = fmt.Sprintf("%s\n\n%s", planContext, task)
+		}
+	}
+
+	// Add initial user message
+	a.messages = append(a.messages, llm.Message{
+		Role:    "user",
+		Content: userInput,
+	})
+
+	// Update context manager
+	a.contextMgr.SetMessages(a.messages)
+
+	// Append to conversation history
+	a.appendToConversationHistory("user", task)
+
+	// Create context with timeout if specified
+	ctx := context.Background()
+	if options.Timeout > 0 {
+		var cancel context.CancelFunc
+		ctx, cancel = context.WithTimeout(ctx, options.Timeout)
+		defer cancel()
+	}
+
+	// Main autonomous loop
+	for {
+		// Increment iteration
+		detector.IncrementIteration()
+
+		// Execute one conversation turn
+		resp, toolsExecuted, err := a.executeConversationTurn(ctx, options.StopOnError, detector)
+		if err != nil {
+			result.Error = err
+			result.CompletionReason = CompletionReasonError
+			break
+		}
+
+		// Check if complete
+		if isComplete, reason := detector.IsComplete(resp); isComplete {
+			result.Success = (reason == CompletionReasonSuccess || reason == CompletionReasonNaturalStop)
+			result.CompletionReason = reason
+			result.FinalMessage = resp.Content
+			break
+		}
+
+		// If no tools were executed and we have a response, this is the final message
+		if !toolsExecuted && resp.FinishReason == "stop" {
+			result.Success = true
+			result.CompletionReason = CompletionReasonNaturalStop
+			result.FinalMessage = resp.Content
+			break
+		}
+	}
+
+	// Fill in result metrics
+	currentTokens, _, _ := a.tokenMonitor.GetCurrentUsage()
+	result.TokensUsed = currentTokens
+	result.ToolCallCount = detector.GetToolCallCount()
+	result.Iterations = detector.GetCurrentIteration()
+	result.Messages = a.messages
+	result.ExecutionTime = detector.GetElapsedTime()
+
+	return result, nil
+}
+
+// executeConversationTurn executes one turn of the conversation loop
+// Returns (response, toolsWereExecuted, error)
+func (a *Agent) executeConversationTurn(ctx context.Context, stopOnError bool, detector *CompletionDetector) (*llm.CompletionResponse, bool, error) {
+	// Check if context needs pruning
+	if a.contextMgr.NeedsPruning() {
+		a.messages = a.contextMgr.PruneMessages()
+		a.tokenMonitor.ResetWarningLevel()
+	}
+
+	// Prepare tools for LLM
+	toolDefs := make([]llm.Tool, 0)
+	for _, tool := range a.toolRegistry.All() {
+		toolDefs = append(toolDefs, llm.Tool{
+			Type: "function",
+			Function: llm.Function{
+				Name:        tool.Name(),
+				Description: tool.Description(),
+				Parameters:  tool.Parameters(),
+			},
+		})
+	}
+
+	// Prepare messages for LLM
+	messagesToSend := a.contextMgr.GetMessages()
+
+	// Request completion from LLM
+	req := llm.CompletionRequest{
+		Messages:    messagesToSend,
+		Tools:       toolDefs,
+		Temperature: a.config.LLM.Temperature,
+		MaxTokens:   a.config.LLM.MaxTokens,
+	}
+
+	a.logger.LogLLMRequest(a.convertMessagesToInterface(), a.config.LLM.Model, a.config.LLM.Temperature)
+
+	resp, err := a.llmClient.Complete(ctx, req)
+	if err != nil {
+		return nil, false, fmt.Errorf("llm completion failed: %w", err)
+	}
+
+	a.logger.LogLLMResponse(resp.Content, a.convertToolCallsToInterface(resp.ToolCalls))
+
+	// Update token monitor
+	if resp.TotalTokens > 0 {
+		a.tokenMonitor.UpdateActualTokens(resp.TotalTokens)
+	}
+
+	// Log assistant response to conversation history
+	if resp.Content != "" {
+		a.appendToConversationHistory("assistant", resp.Content)
+	}
+
+	// Handle tool calls
+	toolsExecuted := false
+	if len(resp.ToolCalls) > 0 {
+		toolsExecuted = true
+
+		// Add assistant message with tool calls
+		assistantMsg := llm.Message{
+			Role:    "assistant",
+			Content: resp.Content,
+		}
+		a.messages = append(a.messages, assistantMsg)
+
+		// Execute each tool
+		for _, toolCall := range resp.ToolCalls {
+			a.logger.LogToolCall(toolCall.Function.Name, toolCall.Function.Arguments)
+
+			// Check if confirmation needed
+			if a.confirmSys.ShouldConfirm(toolCall.Function.Name, toolCall.Function.Arguments) {
+				approved, err := a.confirmSys.RequestConfirmation(toolCall.Function.Name, toolCall.Function.Arguments)
+				if err != nil {
+					return resp, toolsExecuted, err
+				}
+				if !approved {
+					// Tool rejected - add error message
+					a.messages = append(a.messages, llm.Message{
+						Role:    "tool",
+						Content: "Error: Tool execution rejected by user",
+						ToolID:  toolCall.ID,
+					})
+					detector.RecordToolError()
+					continue
+				}
+			}
+
+			// Execute tool
+			result, err := a.toolRegistry.Execute(ctx, toolCall.Function.Name, toolCall.Function.Arguments)
+
+			a.logger.LogToolResult(toolCall.Function.Name, result, err)
+
+			// Record success or failure
+			if err != nil {
+				detector.RecordToolError()
+				if stopOnError {
+					return resp, toolsExecuted, fmt.Errorf("tool execution failed: %w", err)
+				}
+			} else {
+				detector.RecordToolSuccess()
+			}
+
+			// Add tool result message
+			resultContent := result
+			if err != nil {
+				resultContent = fmt.Sprintf("Error: %v", err)
+			}
+
+			a.messages = append(a.messages, llm.Message{
+				Role:    "tool",
+				Content: resultContent,
+				ToolID:  toolCall.ID,
+			})
+		}
+	}
+
+	return resp, toolsExecuted, nil
 }
