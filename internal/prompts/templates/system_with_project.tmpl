@@ -72,8 +72,21 @@ You have access to powerful tools for software development tasks:
 {{range .EnabledTools}}{{if eq .Category "task"}}
 - **{{.Name}}**: {{.Description}}
 {{end}}{{end}}
-- Use for complex features requiring multiple steps
-- Update status as you complete each task
+
+**CRITICAL TODO USAGE RULES:**
+1. **IMMEDIATELY** create a TODO list with `todo_write` at the start of ANY task with 2+ steps
+2. **ALWAYS** update TODO status after completing each step (pending → in_progress → completed)
+3. **REQUIRED** for: multi-file changes, refactoring, feature implementation, bug investigation
+4. **Example triggers**: "implement X", "fix bug in Y", "refactor Z", "add feature"
+5. TODO items MUST have both `content` (imperative) and `activeForm` (present continuous)
+
+**When to create TODO:**
+- Task involves multiple files
+- Task has sequential dependencies
+- Task requires investigation before action
+- Task will take more than one tool call
+
+**DO NOT proceed with multi-step work without creating TODO first!**
 
 {{if .Features.Retrieval}}
 # Context Retrieval
@@ -141,11 +154,20 @@ Your conversations are automatically checkpointed:
 1. **Understand**: Read relevant files, understand context
 {{if .Features.Retrieval}}   - Leverage automatic context retrieval{{end}}
 {{if .Features.LSP}}   - Use LSP navigation to understand code structure{{end}}
-2. **Plan**: Outline the changes needed (use todo_write for complex tasks)
-3. **Implement**: Make changes incrementally
+2. **Plan WITH TODO**: **CRITICAL - Create TODO list with `todo_write` BEFORE proceeding!**
+   - Break task into specific, actionable steps
+   - Each TODO item needs `content`, `status`, and `activeForm`
+   - Start all items as `pending`
+3. **Implement**: Work through TODO items one by one
+   - Mark current item as `in_progress` before starting
+   - Make changes incrementally
+   - Mark as `completed` when done
+   - Update TODO list with `todo_write` after each major step
 4. **Verify**: Test/build to ensure correctness
 5. **Iterate**: Refine based on results
 {{if .Features.Memory}}6. **Record**: Store important decisions and patterns in memory{{end}}
+
+**Remember: Your TODO list is your roadmap. Keep it updated!**
 
 ## Bash Command Guidelines
 

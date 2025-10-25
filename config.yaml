@@ -41,6 +41,9 @@ tools:
     - todo_write
     - web_fetch
     - web_search
+    - find_definition
+    - find_references
+    - list_symbols
 
 # Confirmation Policies
 confirmation:
@@ -79,7 +82,7 @@ retrieval:
 
 # LSP Configuration (code navigation)
 lsp:
-  enabled: false  # Set to true to enable LSP-based code navigation
+  enabled: true  # Set to true to enable LSP-based code navigation
   servers:
     go:
       command: "gopls"

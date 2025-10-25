@@ -10,11 +10,13 @@ import (
 	"time"
 
 	"github.com/chzyer/readline"
+	"github.com/jake/gocode/internal/codegraph"
 	"github.com/jake/gocode/internal/config"
 	"github.com/jake/gocode/internal/confirmation"
 	"github.com/jake/gocode/internal/initialization"
 	"github.com/jake/gocode/internal/llm"
 	"github.com/jake/gocode/internal/logging"
+	"github.com/jake/gocode/internal/lsp"
 	"github.com/jake/gocode/internal/prompts"
 	"github.com/jake/gocode/internal/theme"
 	"github.com/jake/gocode/internal/tools"
@@ -31,6 +33,7 @@ type Agent struct {
 	messages      []llm.Message
 	rl            *readline.Instance
 	historyFile   string
+	todoTool      *tools.TodoWriteTool
 }
 
 func New(cfg *config.Config, projectAnalysis *initialization.ProjectAnalysis) (*Agent, error) {
@@ -52,6 +55,26 @@ func New(cfg *config.Config, projectAnalysis *initialization.ProjectAnalysis) (*
 
 	// Initialize tool registry
 	registry := tools.NewRegistry()
+
+	// Initialize LSP manager and CodeGraph if LSP is enabled
+	var lspMgr *lsp.Manager
+	var codeGraph *codegraph.Graph
+	if cfg.LSP.Enabled {
+		// Build LSP server configs from config
+		lspConfigs := make(map[string]lsp.LanguageServerConfig)
+		for lang, serverCfg := range cfg.LSP.Servers {
+			lspConfigs[lang] = lsp.LanguageServerConfig{
+				Command: serverCfg.Command,
+				Args:    serverCfg.Args,
+			}
+		}
+
+		// Create LSP manager
+		lspMgr = lsp.NewManager(cfg.WorkingDir, lspConfigs)
+
+		// Create CodeGraph
+		codeGraph = codegraph.NewGraph(cfg.WorkingDir, lspMgr)
+	}
 
 	// Register enabled tools
 	bashTool := tools.NewBashTool()
@@ -82,6 +105,18 @@ func New(cfg *config.Config, projectAnalysis *initialization.ProjectAnalysis) (*
 			registry.Register(tools.NewWebFetchTool())
 		case "web_search":
 			registry.Register(tools.NewWebSearchTool())
+		case "find_definition":
+			if codeGraph != nil {
+				registry.Register(tools.NewFindDefinitionTool(codeGraph))
+			}
+		case "find_references":
+			if codeGraph != nil {
+				registry.Register(tools.NewFindReferencesTool(codeGraph))
+			}
+		case "list_symbols":
+			if codeGraph != nil {
+				registry.Register(tools.NewListSymbolsTool(codeGraph))
+			}
 		}
 	}
 
@@ -141,6 +176,7 @@ func New(cfg *config.Config, projectAnalysis *initialization.ProjectAnalysis) (*
 		messages:      messages,
 		rl:            rl,
 		historyFile:   historyFile,
+		todoTool:      todoTool,
 	}, nil
 }
 
@@ -176,6 +212,16 @@ func (a *Agent) Run() error {
 
 func (a *Agent) processInput(input string) error {
 	a.logger.LogUserInput(input)
+
+	// Inject current TODO state before processing
+	todos := a.todoTool.GetTodos()
+	if len(todos) > 0 {
+		todoContext := a.formatTodoContext(todos)
+		a.messages = append(a.messages, llm.Message{
+			Role:    "system",
+			Content: todoContext,
+		})
+	}
 
 	// Add user message
 	a.messages = append(a.messages, llm.Message{
@@ -441,4 +487,31 @@ func (a *Agent) appendToConversationHistory(role, content string) {
 	defer f.Close()
 
 	f.WriteString(entry)
+}
+
+// formatTodoContext formats the current TODO list for injection into conversation
+func (a *Agent) formatTodoContext(todos []tools.TodoItem) string {
+	var parts []string
+	parts = append(parts, "📋 **Current TODO List:**")
+	parts = append(parts, "")
+
+	for i, todo := range todos {
+		var icon string
+		switch todo.Status {
+		case "pending":
+			icon = "[ ]"
+		case "in_progress":
+			icon = "[→]"
+		case "completed":
+			icon = "[✓]"
+		default:
+			icon = "[ ]"
+		}
+		parts = append(parts, fmt.Sprintf("%d. %s %s", i+1, icon, todo.Content))
+	}
+
+	parts = append(parts, "")
+	parts = append(parts, "_Remember to update this TODO list with `todo_write` as you make progress!_")
+
+	return strings.Join(parts, "\n")
 }
