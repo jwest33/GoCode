@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "Bash(git restore:*)",
-      "Bash(pylsp:*)"
+      "Bash(pylsp:*)",
+      "Bash(go test:*)",
+      "Bash(dir C:UsersJaketest-workspacetest-repo)",
+      "Bash(dir:*)"
     ],
     "deny": [],
     "ask": []

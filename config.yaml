@@ -52,6 +52,7 @@ confirmation:
     - read
     - glob
     - grep
+    - todo_write
   always_confirm_tools:
     - write
     - edit
@@ -103,7 +104,7 @@ checkpoint:
 
 # Memory Configuration (long-term memory)
 memory:
-  enabled: false  # Set to true to enable long-term memory
+  enabled: true  # Set to true to enable long-term memory
   db_path: "memory.db"
 
 # Telemetry Configuration (OpenTelemetry tracing)

@@ -167,7 +167,16 @@ func getPlatformShellInfo() (shellType string, instructions string) {
   * copy - copy files
   * move - move/rename files
   * type - display file contents (use read tool instead)
-  * echo - output text`
+  * echo - output text
+
+**Windows Python-Specific:**
+- Python on Windows defaults to cp1252 encoding, which CANNOT handle Unicode characters (✓, ✗, ⚠, emoji, etc.)
+- When you see UnicodeEncodeError with cp1252, this is the cause
+- **Solutions (in order of preference):**
+  1. Set encoding before running: "set PYTHONIOENCODING=utf-8 && python script.py"
+  2. Change console to UTF-8: "chcp 65001 && python script.py"
+  3. Edit the Python file to replace Unicode characters with ASCII (e.g., ✓ → PASS, ✗ → FAIL)
+- **Diagnosis pattern**: If tests fail with charmap/cp1252 error, grep for Unicode characters in print statements`
 
 	case "darwin":
 		return "bash", `You are running on macOS (Darwin).

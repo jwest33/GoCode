@@ -35,7 +35,7 @@ func (t *BashTool) Name() string {
 }
 
 func (t *BashTool) Description() string {
-	return "Executes bash commands with optional timeout and background execution support."
+	return "Executes bash commands with optional timeout and background execution support. Use this to run tests (python tests.py, npm test, go test), builds, and other shell commands."
 }
 
 func (t *BashTool) Parameters() map[string]interface{} {

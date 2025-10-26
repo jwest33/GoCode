@@ -35,7 +35,7 @@ func (t *TodoWriteTool) Name() string {
 }
 
 func (t *TodoWriteTool) Description() string {
-	return "Creates and manages a structured task list. Tracks progress with pending/in_progress/completed states."
+	return "Creates and manages a structured task list. Tracks progress with pending/in_progress/completed states. CRITICAL: You MUST update this TODO list IMMEDIATELY after completing each step - call this tool to mark tasks as 'in_progress' before starting work, and 'completed' immediately after finishing. Never batch updates - update after EVERY single step."
 }
 
 func (t *TodoWriteTool) Parameters() map[string]interface{} {
@@ -181,4 +181,54 @@ func (t *TodoWriteTool) GetTodos() []TodoItem {
 	t.mu.RLock()
 	defer t.mu.RUnlock()
 	return append([]TodoItem{}, t.todos...)
+}
+
+// GetProgressSummary returns a summary of TODO progress
+func (t *TodoWriteTool) GetProgressSummary() string {
+	t.mu.RLock()
+	defer t.mu.RUnlock()
+
+	if len(t.todos) == 0 {
+		return ""
+	}
+
+	pending := 0
+	inProgress := 0
+	completed := 0
+
+	for _, todo := range t.todos {
+		switch todo.Status {
+		case "pending":
+			pending++
+		case "in_progress":
+			inProgress++
+		case "completed":
+			completed++
+		}
+	}
+
+	total := len(t.todos)
+	percentComplete := 0
+	if total > 0 {
+		percentComplete = (completed * 100) / total
+	}
+
+	var summary strings.Builder
+	summary.WriteString(fmt.Sprintf("📋 Progress: %d/%d completed (%d%%)", completed, total, percentComplete))
+
+	if inProgress > 0 {
+		// Find the in-progress item
+		for _, todo := range t.todos {
+			if todo.Status == "in_progress" {
+				summary.WriteString(fmt.Sprintf(" | Current: %s", todo.Content))
+				break
+			}
+		}
+	}
+
+	if pending > 0 {
+		summary.WriteString(fmt.Sprintf(" | %d pending", pending))
+	}
+
+	return summary.String()
 }

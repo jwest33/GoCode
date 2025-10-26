@@ -151,6 +151,11 @@ func displayRecommendationGroup(recommendations []Recommendation) {
 		icon := getRecommendationIcon(rec.Type, rec.Installed)
 		fmt.Printf("   %s %s\n", icon, theme.Agent(rec.Title))
 		fmt.Printf("      %s\n", theme.Dim(rec.Description))
+
+		// Show installation command if available
+		if rec.Action != "" {
+			fmt.Printf("      %s %s\n", theme.Success("→"), theme.Agent("Run: "+rec.Action))
+		}
 	}
 }
 

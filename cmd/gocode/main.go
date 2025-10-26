@@ -64,9 +64,14 @@ func main() {
 	}
 	cfg.WorkingDir = workingDir
 
+	// Resolve memory database path to .gocode directory
+	if cfg.Memory.Enabled && cfg.Memory.DBPath != "" && !filepath.IsAbs(cfg.Memory.DBPath) {
+		cfg.Memory.DBPath = filepath.Join(workingDir, ".gocode", cfg.Memory.DBPath)
+	}
+
 	// Handle first-run initialization
 	var projectAnalysis *initialization.ProjectAnalysis
-	if shouldInit, analysis := handleInitialization(workingDir); shouldInit {
+	if shouldInit, analysis := handleInitialization(workingDir, cfg); shouldInit {
 		projectAnalysis = analysis
 	}
 
@@ -84,7 +89,7 @@ func main() {
 }
 
 // handleInitialization checks if this is a first run and handles initialization
-func handleInitialization(workingDir string) (bool, *initialization.ProjectAnalysis) {
+func handleInitialization(workingDir string, cfg *config.Config) (bool, *initialization.ProjectAnalysis) {
 	// Create detector
 	detector, err := initialization.NewDetector(workingDir)
 	if err != nil {
@@ -124,7 +129,7 @@ func handleInitialization(workingDir string) (bool, *initialization.ProjectAnaly
 
 	// Generate recommendations
 	initialization.DisplayInitProgress("Generating recommendations...")
-	featureDetector := initialization.NewFeatureDetector(analysis)
+	featureDetector := initialization.NewFeatureDetector(analysis, cfg)
 	recommendations := featureDetector.GenerateRecommendations()
 	analysis.Recommendations = recommendations
 

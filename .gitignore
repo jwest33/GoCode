@@ -8,9 +8,6 @@ logs/
 # Session data
 .coder_history
 
-# Go
-go.sum
-
 # IDE
 .vscode/
 .idea/

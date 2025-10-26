@@ -3,6 +3,7 @@ package lsp
 import (
 	"context"
 	"fmt"
+	"os/exec"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -234,6 +235,19 @@ func (m *Manager) getLanguageID(filePath string) string {
 	}
 
 	return "plaintext"
+}
+
+// ValidateServers checks which configured LSP servers are available
+// Returns a map of language -> available (bool)
+func (m *Manager) ValidateServers() map[string]bool {
+	results := make(map[string]bool)
+
+	for lang, config := range m.configs {
+		_, err := exec.LookPath(config.Command)
+		results[lang] = (err == nil)
+	}
+
+	return results
 }
 
 // Shutdown shuts down all LSP clients

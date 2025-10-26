@@ -99,6 +99,56 @@ func Dim(format string, a ...interface{}) string {
 	return Gray.Sprintf(format, a...)
 }
 
+// SummaryBox creates a synthwave-themed summary box
+func SummaryBox(title string, lines []string) string {
+	maxWidth := len(title)
+	for _, line := range lines {
+		if len(line) > maxWidth {
+			maxWidth = len(line)
+		}
+	}
+
+	width := maxWidth + 4 // Add padding
+	if width < 40 {
+		width = 40
+	}
+
+	var box strings.Builder
+
+	// Top border
+	box.WriteString(Purple.Sprint("╭─"))
+	box.WriteString(Purple.Sprint(strings.Repeat("─", width-4)))
+	box.WriteString(Purple.Sprint("─╮\n"))
+
+	// Title
+	box.WriteString(Purple.Sprint("│ "))
+	box.WriteString(PinkBold.Sprint(title))
+	box.WriteString(Purple.Sprint(strings.Repeat(" ", width-len(title)-3)))
+	box.WriteString(Purple.Sprint("│\n"))
+
+	if len(lines) > 0 {
+		// Separator
+		box.WriteString(Purple.Sprint("├─"))
+		box.WriteString(Purple.Sprint(strings.Repeat("─", width-4)))
+		box.WriteString(Purple.Sprint("─┤\n"))
+
+		// Content lines
+		for _, line := range lines {
+			box.WriteString(Purple.Sprint("│ "))
+			box.WriteString(Cyan.Sprint(line))
+			box.WriteString(Purple.Sprint(strings.Repeat(" ", width-len(line)-3)))
+			box.WriteString(Purple.Sprint("│\n"))
+		}
+	}
+
+	// Bottom border
+	box.WriteString(Purple.Sprint("╰─"))
+	box.WriteString(Purple.Sprint(strings.Repeat("─", width-4)))
+	box.WriteString(Purple.Sprint("─╯"))
+
+	return box.String()
+}
+
 // JSON syntax highlighter
 type jsonHighlighter struct {
 	key    *color.Color

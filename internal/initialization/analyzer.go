@@ -73,6 +73,7 @@ type Recommendation struct {
 	Description string `json:"description"`
 	Priority    string `json:"priority"` // "high", "medium", "low"
 	Installed   bool   `json:"installed,omitempty"` // For LSP servers
+	Action      string `json:"action,omitempty"` // Installation command or action to take
 }
 
 // Analyzer performs project analysis

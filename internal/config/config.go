@@ -143,3 +143,29 @@ func Load(path string) (*Config, error) {
 
 	return &cfg, nil
 }
+
+// Interface methods for feature detection
+
+func (c *Config) IsMemoryEnabled() bool {
+	return c.Memory.Enabled
+}
+
+func (c *Config) IsCheckpointEnabled() bool {
+	return c.Checkpoint.Enabled
+}
+
+func (c *Config) IsRetrievalEnabled() bool {
+	return c.Retrieval.Enabled
+}
+
+func (c *Config) IsTelemetryEnabled() bool {
+	return c.Telemetry.Enabled
+}
+
+func (c *Config) IsEvaluationEnabled() bool {
+	return c.Evaluation.Enabled
+}
+
+func (c *Config) IsLSPEnabled() bool {
+	return c.LSP.Enabled
+}

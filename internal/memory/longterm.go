@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
+	_ "modernc.org/sqlite"
 )
 
 // LongTermMemory stores facts, learnings, and artifacts across sessions
@@ -43,7 +43,7 @@ type Memory struct {
 
 // NewLongTermMemory creates a new long-term memory store
 func NewLongTermMemory(dbPath string) (*LongTermMemory, error) {
-	db, err := sql.Open("sqlite3", dbPath)
+	db, err := sql.Open("sqlite", dbPath)
 	if err != nil {
 		return nil, fmt.Errorf("failed to open database: %w", err)
 	}

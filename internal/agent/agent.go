@@ -17,26 +17,35 @@ import (
 	"github.com/jake/gocode/internal/llm"
 	"github.com/jake/gocode/internal/logging"
 	"github.com/jake/gocode/internal/lsp"
+	"github.com/jake/gocode/internal/memory"
 	"github.com/jake/gocode/internal/prompts"
 	"github.com/jake/gocode/internal/theme"
 	"github.com/jake/gocode/internal/tools"
 )
 
 type Agent struct {
-	config        *config.Config
-	llmClient     *llm.Client
-	serverManager *llm.ServerManager
-	toolRegistry  *tools.Registry
-	confirmSys    *confirmation.System
-	logger        *logging.Logger
-	promptMgr     *prompts.PromptManager
-	messages      []llm.Message
-	rl            *readline.Instance
-	historyFile   string
-	todoTool      *tools.TodoWriteTool
+	config           *config.Config
+	llmClient        *llm.Client
+	serverManager    *llm.ServerManager
+	toolRegistry     *tools.Registry
+	confirmSys       *confirmation.System
+	logger           *logging.Logger
+	promptMgr        *prompts.PromptManager
+	messages         []llm.Message
+	rl               *readline.Instance
+	historyFile      string
+	todoTool         *tools.TodoWriteTool
+	selfCheck        *SelfCheckSystem
+	memory           *memory.LongTermMemory
+	lastBashExitCode int      // Track last bash command exit code
+	lastBashTool     string   // Track if last tool was bash
+	toolsUsedInTurn  []string // Track tools used in current turn
 }
 
 func New(cfg *config.Config, projectAnalysis *initialization.ProjectAnalysis) (*Agent, error) {
+	// Discover and add LSP binary paths to PATH
+	lsp.DiscoverAndAddLSPPaths()
+
 	// Initialize logger
 	logger, err := logging.New(&cfg.Logging, cfg.BaseDir)
 	if err != nil {
@@ -71,6 +80,19 @@ func New(cfg *config.Config, projectAnalysis *initialization.ProjectAnalysis) (*
 
 		// Create LSP manager
 		lspMgr = lsp.NewManager(cfg.WorkingDir, lspConfigs)
+
+		// Validate LSP servers and warn about missing ones
+		serverStatus := lspMgr.ValidateServers()
+		for lang, available := range serverStatus {
+			if !available {
+				serverCfg := cfg.LSP.Servers[lang]
+				fmt.Printf("%s LSP server for %s (%s) not found in PATH. LSP features will be unavailable for %s files.\n",
+					theme.Warning("⚠️"),
+					lang,
+					serverCfg.Command,
+					lang)
+			}
+		}
 
 		// Create CodeGraph
 		codeGraph = codegraph.NewGraph(cfg.WorkingDir, lspMgr)
@@ -129,10 +151,16 @@ func New(cfg *config.Config, projectAnalysis *initialization.ProjectAnalysis) (*
 		return nil, fmt.Errorf("failed to create prompt manager: %w", err)
 	}
 
+	// Ensure .gocode directory exists for history files
+	gocodeDir := filepath.Join(cfg.WorkingDir, ".gocode")
+	if err := os.MkdirAll(gocodeDir, 0755); err != nil {
+		return nil, fmt.Errorf("failed to create .gocode directory: %w", err)
+	}
+
 	// Initialize readline
 	rl, err := readline.NewEx(&readline.Config{
 		Prompt:          theme.GetPinkPrompt(),
-		HistoryFile:     ".gocode_history",
+		HistoryFile:     filepath.Join(gocodeDir, "history"),
 		InterruptPrompt: "^C",
 		EOFPrompt:       "exit",
 	})
@@ -163,7 +191,22 @@ func New(cfg *config.Config, projectAnalysis *initialization.ProjectAnalysis) (*
 	}
 
 	// Set up conversation history file
-	historyFile := filepath.Join(cfg.WorkingDir, ".gocode_conversation_history")
+	historyFile := filepath.Join(gocodeDir, "conversation_history")
+
+	// Initialize self-check system
+	selfCheck := NewSelfCheckSystem(registry)
+
+	// Initialize long-term memory if enabled
+	var ltm *memory.LongTermMemory
+	if cfg.Memory.Enabled {
+		ltm, err = memory.NewLongTermMemory(cfg.Memory.DBPath)
+		if err != nil {
+			logger.Close()
+			serverManager.Stop()
+			rl.Close()
+			return nil, fmt.Errorf("failed to initialize long-term memory: %w", err)
+		}
+	}
 
 	return &Agent{
 		config:        cfg,
@@ -177,6 +220,8 @@ func New(cfg *config.Config, projectAnalysis *initialization.ProjectAnalysis) (*
 		rl:            rl,
 		historyFile:   historyFile,
 		todoTool:      todoTool,
+		selfCheck:     selfCheck,
+		memory:        ltm,
 	}, nil
 }
 
@@ -184,8 +229,22 @@ func (a *Agent) Run() error {
 	defer a.serverManager.Stop()
 	defer a.logger.Close()
 	defer a.rl.Close()
+	if a.memory != nil {
+		defer a.memory.Close()
+	}
 
 	fmt.Print(theme.SynthwaveBanner("v1.0"))
+
+	// Display enabled features
+	if a.config.Memory.Enabled || a.config.LSP.Enabled {
+		fmt.Println()
+		if a.config.LSP.Enabled {
+			fmt.Printf("%s %s\n", theme.Success("✓"), theme.Dim("LSP code navigation enabled"))
+		}
+		if a.config.Memory.Enabled {
+			fmt.Printf("%s %s\n", theme.Success("✓"), theme.Dim("Long-term memory enabled"))
+		}
+	}
 
 	for {
 		line, err := a.rl.Readline()
@@ -213,6 +272,9 @@ func (a *Agent) Run() error {
 func (a *Agent) processInput(input string) error {
 	a.logger.LogUserInput(input)
 
+	// Reset tools used in this turn
+	a.toolsUsedInTurn = []string{}
+
 	// Inject current TODO state before processing
 	todos := a.todoTool.GetTodos()
 	if len(todos) > 0 {
@@ -231,6 +293,29 @@ func (a *Agent) processInput(input string) error {
 
 	// Append to conversation history
 	a.appendToConversationHistory("user", input)
+
+	// Retrieve relevant memories if memory is enabled
+	if a.memory != nil {
+		memories, err := a.memory.Search(input, 3) // Get top 3 relevant memories
+		if err == nil && len(memories) > 0 {
+			var memoryContext strings.Builder
+			memoryContext.WriteString("📚 **Relevant memories from past sessions:**\n\n")
+			for i, mem := range memories {
+				memoryContext.WriteString(fmt.Sprintf("%d. [%s] %s\n", i+1, mem.Type, mem.Summary))
+				if len(mem.Content) > 200 {
+					memoryContext.WriteString(fmt.Sprintf("   %s...\n", mem.Content[:200]))
+				} else {
+					memoryContext.WriteString(fmt.Sprintf("   %s\n", mem.Content))
+				}
+			}
+
+			// Inject memories as system message
+			a.messages = append(a.messages, llm.Message{
+				Role:    "system",
+				Content: memoryContext.String(),
+			})
+		}
+	}
 
 	// Main conversation loop
 	for {
@@ -257,7 +342,14 @@ func (a *Agent) processInput(input string) error {
 
 		a.logger.LogLLMRequest(a.convertMessagesToInterface(), a.config.LLM.Model, a.config.LLM.Temperature)
 
+		// Show thinking indicator
+		fmt.Printf("\n%s", theme.Dim("🤔 Thinking...\r"))
+
 		resp, err := a.llmClient.Complete(context.Background(), req)
+
+		// Clear thinking indicator
+		fmt.Printf("\r%s\r", strings.Repeat(" ", 20))
+
 		if err != nil {
 			return fmt.Errorf("LLM completion failed: %w", err)
 		}
@@ -297,19 +389,73 @@ func (a *Agent) processInput(input string) error {
 					}
 				}
 
-				// Execute tool
-				fmt.Printf("\n%s %s\n", theme.Tool("🔧 Executing:"), theme.ToolBold(toolCall.Function.Name))
+				// Execute tool - show command for bash
+				if toolCall.Function.Name == "bash" {
+					// Try to extract command from arguments
+					var bashArgs map[string]interface{}
+					if err := json.Unmarshal([]byte(toolCall.Function.Arguments), &bashArgs); err == nil {
+						if cmd, ok := bashArgs["command"].(string); ok {
+							// Truncate long commands
+							displayCmd := cmd
+							if len(displayCmd) > 60 {
+								displayCmd = displayCmd[:57] + "..."
+							}
+							fmt.Printf("\n%s %s %s\n", theme.Tool("🔧 Executing:"), theme.ToolBold(toolCall.Function.Name), theme.Dim("(%s)", displayCmd))
+						} else {
+							fmt.Printf("\n%s %s\n", theme.Tool("🔧 Executing:"), theme.ToolBold(toolCall.Function.Name))
+						}
+					} else {
+						fmt.Printf("\n%s %s\n", theme.Tool("🔧 Executing:"), theme.ToolBold(toolCall.Function.Name))
+					}
+				} else {
+					fmt.Printf("\n%s %s\n", theme.Tool("🔧 Executing:"), theme.ToolBold(toolCall.Function.Name))
+				}
+
 				result, err := a.toolRegistry.Execute(context.Background(), toolCall.Function.Name, toolCall.Function.Arguments)
 
+				// Track tool usage
+				a.toolsUsedInTurn = append(a.toolsUsedInTurn, toolCall.Function.Name)
+
 				a.logger.LogToolResult(toolCall.Function.Name, result, err)
+
+				// Track bash tool execution for validation
+				if toolCall.Function.Name == "bash" {
+					a.lastBashTool = toolCall.Function.Name
+					// Parse exit code from error if present
+					if err != nil {
+						// Error format: "command failed: exit status N"
+						if strings.Contains(err.Error(), "exit status") {
+							var exitCode int
+							fmt.Sscanf(err.Error(), "command failed: exit status %d", &exitCode)
+							a.lastBashExitCode = exitCode
+						} else {
+							a.lastBashExitCode = 1 // Generic error
+						}
+					} else {
+						a.lastBashExitCode = 0 // Success
+					}
+				}
 
 				// Add tool result message
 				resultContent := result
 				if err != nil {
-					resultContent = fmt.Sprintf("Error: %v", err)
+					// Enhance error message for bash commands to prevent hallucination
+					if toolCall.Function.Name == "bash" {
+						resultContent = fmt.Sprintf("Command failed: %v\n\n⚠️  IMPORTANT: The command FAILED with exit code %d.\nDO NOT claim the command succeeded or that tests passed.\nYou must fix the actual problem before claiming success.", err, a.lastBashExitCode)
+					} else {
+						resultContent = fmt.Sprintf("Error: %v", err)
+					}
 					fmt.Printf("%s\n", theme.Error("❌ %s", resultContent))
 				} else {
 					fmt.Printf("%s\n", theme.Success("✓ Complete"))
+
+					// Display TODO status after todo_write execution
+					if toolCall.Function.Name == "todo_write" {
+						summary := a.todoTool.GetProgressSummary()
+						if summary != "" {
+							fmt.Printf("%s\n", theme.Dim(summary))
+						}
+					}
 				}
 
 				a.messages = append(a.messages, llm.Message{
@@ -327,14 +473,146 @@ func (a *Agent) processInput(input string) error {
 			continue
 		}
 
-		// No more tool calls, conversation turn complete
+		// No more tool calls, check if we need to verify claims
 		if resp.FinishReason == "stop" {
+			// Create message from response
+			assistantMsg := llm.Message{
+				Role:    "assistant",
+				Content: resp.Content,
+			}
+
+			// Check if self-check should trigger
+			if a.selfCheck.ShouldTriggerCheck(assistantMsg) {
+				// Detect claims
+				claims := a.selfCheck.DetectCompletionClaims(resp.Content)
+
+				// Build project context for test detection
+				projectContext := a.config.WorkingDir
+				if len(a.config.LSP.Servers) > 0 {
+					for lang := range a.config.LSP.Servers {
+						projectContext += " " + lang
+					}
+				}
+
+				// Verify claims
+				verifiedClaims, err := a.selfCheck.VerifyClaims(context.Background(), claims, projectContext)
+				if err != nil {
+					fmt.Printf("\n%s\n", theme.Error("Self-check error: %v", err))
+				}
+
+				// Generate feedback
+				feedback := a.selfCheck.GenerateFeedbackMessage(verifiedClaims)
+				if feedback != "" {
+					// Check if any claims failed verification
+					anyFailed := false
+					for _, claim := range verifiedClaims {
+						if !claim.Verified {
+							anyFailed = true
+							break
+						}
+					}
+
+					if anyFailed {
+						// Inject feedback back into conversation
+						fmt.Printf("\n%s\n", theme.Warning(feedback))
+
+						a.messages = append(a.messages, llm.Message{
+							Role:    "system",
+							Content: feedback,
+						})
+
+						// Continue the loop to let the agent respond to the feedback
+						continue
+					}
+				}
+			}
+
+			// Store important learnings to long-term memory
+			if a.memory != nil {
+				a.storeConversationMemories(input, resp.Content)
+			}
+
+			// Display turn summary
+			a.displayTurnSummary()
+
 			break
 		}
 	}
 
 	fmt.Println()
 	return nil
+}
+
+// displayTurnSummary shows a summary of what happened in this turn
+func (a *Agent) displayTurnSummary() {
+	// Don't show summary if no tools were used
+	if len(a.toolsUsedInTurn) == 0 {
+		return
+	}
+
+	var summaryLines []string
+
+	// Tools used
+	toolList := strings.Join(a.uniqueTools(a.toolsUsedInTurn), ", ")
+	summaryLines = append(summaryLines, fmt.Sprintf("Tools used: %s", toolList))
+
+	// TODO status
+	todos := a.todoTool.GetTodos()
+	if len(todos) > 0 {
+		pending := 0
+		inProgress := 0
+		completed := 0
+		var currentTask string
+
+		for _, todo := range todos {
+			switch todo.Status {
+			case "pending":
+				pending++
+			case "in_progress":
+				inProgress++
+				if currentTask == "" {
+					currentTask = todo.Content
+				}
+			case "completed":
+				completed++
+			}
+		}
+
+		if currentTask != "" {
+			// Truncate if too long
+			if len(currentTask) > 50 {
+				currentTask = currentTask[:47] + "..."
+			}
+			summaryLines = append(summaryLines, fmt.Sprintf("Current task: %s", currentTask))
+		}
+
+		if pending > 0 {
+			summaryLines = append(summaryLines, fmt.Sprintf("Next tasks: %d pending", pending))
+		}
+
+		total := len(todos)
+		percentComplete := (completed * 100) / total
+		summaryLines = append(summaryLines, fmt.Sprintf("Progress: %d/%d (%d%%)", completed, total, percentComplete))
+	}
+
+	summaryLines = append(summaryLines, "Status: Waiting for your input")
+
+	fmt.Printf("\n%s\n", theme.SummaryBox("🎯 Turn Summary", summaryLines))
+}
+
+// uniqueTools returns unique tool names from a list
+func (a *Agent) uniqueTools(tools []string) []string {
+	seen := make(map[string]bool)
+	unique := []string{}
+
+	for _, tool := range tools {
+		if !seen[tool] {
+			seen[tool] = true
+			unique = append(unique, tool)
+		}
+	}
+
+	return unique
 }
 
 func (a *Agent) convertMessagesToInterface() []interface{} {
@@ -514,4 +792,72 @@ func (a *Agent) formatTodoContext(todos []tools.TodoItem) string {
 	parts = append(parts, "_Remember to update this TODO list with `todo_write` as you make progress!_")
 
 	return strings.Join(parts, "\n")
+}
+
+// storeConversationMemories extracts and stores important learnings from the conversation
+func (a *Agent) storeConversationMemories(userInput, assistantResponse string) {
+	// Extract key patterns to store
+
+	// 1. Store architectural decisions
+	if strings.Contains(strings.ToLower(userInput), "architecture") ||
+		strings.Contains(strings.ToLower(userInput), "design") ||
+		strings.Contains(strings.ToLower(userInput), "pattern") {
+		mem := &memory.Memory{
+			Type:       memory.TypeDecision,
+			Content:    fmt.Sprintf("User: %s\nAssistant: %s", userInput, assistantResponse),
+			Summary:    userInput,
+			Tags:       []string{"architecture", "design"},
+			Importance: 0.8,
+		}
+		a.memory.Store(mem)
+	}
+
+	// 2. Store error resolutions
+	if strings.Contains(strings.ToLower(userInput), "error") ||
+		strings.Contains(strings.ToLower(userInput), "bug") ||
+		strings.Contains(strings.ToLower(userInput), "fix") ||
+		strings.Contains(strings.ToLower(userInput), "issue") {
+		mem := &memory.Memory{
+			Type:       memory.TypeError,
+			Content:    fmt.Sprintf("Problem: %s\nSolution: %s", userInput, assistantResponse),
+			Summary:    userInput,
+			Tags:       []string{"error", "troubleshooting"},
+			Importance: 0.7,
+		}
+		a.memory.Store(mem)
+	}
+
+	// 3. Store project structure learnings (from read/glob/grep results)
+	hasExploredStructure := false
+	for _, msg := range a.messages {
+		if msg.Role == "tool" && (strings.Contains(msg.Content, "files") || strings.Contains(msg.Content, "directory")) {
+			hasExploredStructure = true
+			break
+		}
+	}
+
+	if hasExploredStructure {
+		mem := &memory.Memory{
+			Type:       memory.TypeFact,
+			Content:    fmt.Sprintf("Project exploration - User query: %s\nFindings: %s", userInput, assistantResponse),
+			Summary:    "Project structure and organization",
+			Tags:       []string{"structure", "files"},
+			Importance: 0.6,
+		}
+		a.memory.Store(mem)
+	}
+
+	// 4. Store code patterns and best practices
+	if strings.Contains(strings.ToLower(assistantResponse), "pattern") ||
+		strings.Contains(strings.ToLower(assistantResponse), "best practice") ||
+		strings.Contains(strings.ToLower(assistantResponse), "recommendation") {
+		mem := &memory.Memory{
+			Type:       memory.TypePattern,
+			Content:    assistantResponse,
+			Summary:    userInput,
+			Tags:       []string{"pattern", "best-practice"},
+			Importance: 0.7,
+		}
+		a.memory.Store(mem)
+	}
 }
